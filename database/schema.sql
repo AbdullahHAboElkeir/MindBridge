@@ -28,11 +28,7 @@ CREATE TABLE therapist_profiles (
   specialization VARCHAR(120) DEFAULT 'General',
   license_number VARCHAR(120) DEFAULT NULL,
   availability VARCHAR(120) DEFAULT 'weekdays',
-<<<<<<< Updated upstream
   rating DECIMAL(3,2) DEFAULT 0.00,
-=======
-  rating TINYINT NOT NULL DEFAULT 0,
->>>>>>> Stashed changes
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
