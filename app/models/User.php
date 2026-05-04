@@ -1,6 +1,19 @@
 <?php
 class User extends Model
 {
+    protected $table = 'users';
+
+    public function authenticate(string $email, string $password): ?array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM users WHERE email = :email');
+        $stmt->execute([':email' => $email]);
+        $user = $stmt->fetch();
+        if ($user && password_verify($password, $user['password'])) {
+            return $user;
+        }
+        return null;
+    }
+
     public function create(array $data): int
     {
         $stmt = $this->db->prepare('INSERT INTO users (name, email, password, role, status, created_at) VALUES (:name, :email, :password, :role, :status, NOW())');

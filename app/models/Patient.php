@@ -1,6 +1,8 @@
 <?php
 class Patient extends Model
 {
+    protected $table = 'patient_profiles';
+
     public function profile(int $userId): ?array
     {
         $stmt = $this->db->prepare('SELECT * FROM patient_profiles WHERE user_id = :user_id');

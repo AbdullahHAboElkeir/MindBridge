@@ -28,6 +28,7 @@ CREATE TABLE therapist_profiles (
   specialty VARCHAR(120) DEFAULT 'General',
   license_number VARCHAR(120) DEFAULT NULL,
   availability VARCHAR(120) DEFAULT 'weekdays',
+  rating DECIMAL(3,2) DEFAULT 0.00,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -233,6 +234,17 @@ CREATE TABLE crisis_alerts (
   message TEXT NOT NULL,
   detected_at DATETIME NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE matching_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  patient_id INT NOT NULL,
+  preferred_specialty VARCHAR(120),
+  preferred_gender ENUM('male','female','any') DEFAULT 'any',
+  urgency ENUM('low','medium','high') DEFAULT 'medium',
+  status ENUM('pending','matched','cancelled') DEFAULT 'pending',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 INSERT INTO users (name, email, password, role) VALUES
