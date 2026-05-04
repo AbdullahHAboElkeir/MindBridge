@@ -128,7 +128,7 @@ CREATE TABLE resources (
   description TEXT,
   type VARCHAR(80) NOT NULL,
   file_path VARCHAR(255),
-  created_by INT NOT NULL,
+  created_by INT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
@@ -149,7 +149,7 @@ CREATE TABLE forums (
   title VARCHAR(180) NOT NULL,
   description TEXT,
   is_anonymous TINYINT(1) NOT NULL DEFAULT 0,
-  created_by INT NOT NULL,
+  created_by INT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
@@ -198,7 +198,7 @@ CREATE TABLE audit_logs (
 
 CREATE TABLE reports (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
+  user_id INT NULL,
   title VARCHAR(180) NOT NULL,
   content TEXT NOT NULL,
   category VARCHAR(120) NOT NULL,

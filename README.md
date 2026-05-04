@@ -29,13 +29,13 @@ MindBridge is a university-level mental health and wellness portal built with na
 
 ## Setup Instructions
 
-1. Place the `MindBridgenew` folder inside `C:\xampp\htdocs\`.
+1. Place the `MindBridge` folder inside `C:\xampp\htdocs\`.
 2. Start Apache and MySQL from the XAMPP Control Panel.
 3. Open `http://localhost/phpmyadmin`.
 4. Create a new database named `mindbridge` or run the `database/schema.sql` file directly.
 5. Import `database/schema.sql` into MySQL.
 6. If needed, update `config/config.php` with your MySQL credentials.
-7. Access the application at `http://localhost/MindBridgenew/`.
+7. Access the application at `http://localhost/MindBridge/`.
 
 ## Default Accounts
 

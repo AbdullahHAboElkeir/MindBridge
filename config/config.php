@@ -1,4 +1,10 @@
 <?php
+$baseUrl = 'http://localhost/MindBridge/';
+if (!empty($_SERVER['HTTP_HOST'])) {
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $path = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+    $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($path !== '/' ? $path : '') . '/';
+}
 return [
     'db' => [
         'host' => '127.0.0.1',
@@ -8,6 +14,6 @@ return [
         'charset' => 'utf8mb4',
     ],
     'app' => [
-        'base_url' => 'http://localhost/MindBridgenew/',
+        'base_url' => $baseUrl,
     ],
 ];
