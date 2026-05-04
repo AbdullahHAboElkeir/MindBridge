@@ -1,3 +1,4 @@
+<?php $action = $action ?? 'add'; ?>
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
@@ -29,6 +30,20 @@
                             <option value="admin" <?php echo (!empty($user['role']) && $user['role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
                         </select>
                     </div>
+                    <?php if (!empty($user['role']) && $user['role'] === 'therapist' || $action === 'add'): ?>
+                        <div class="mb-3">
+                            <label class="form-label">Specialization</label>
+                            <input type="text" name="specialization" class="form-control" value="<?php echo htmlspecialchars($user['specialization'] ?? 'General'); ?>">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">License number</label>
+                            <input type="text" name="license_number" class="form-control" value="<?php echo htmlspecialchars($user['license_number'] ?? ''); ?>">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Therapist rating</label>
+                            <input type="number" name="rating" class="form-control" min="0" max="5" step="1" value="<?php echo htmlspecialchars($user['rating'] ?? 0); ?>">
+                        </div>
+                    <?php endif; ?>
                     <?php if ($action === 'edit'): ?>
                         <div class="mb-3">
                             <label class="form-label">Status</label>

@@ -29,20 +29,29 @@ class AuthController extends Controller
             if ($userModel->findByEmail($email)) {
                 $error = 'Email already registered.';
             } else {
-                $role = in_array($_POST['role'] ?? 'patient', ['patient', 'therapist', 'admin'], true) ? $_POST['role'] : 'patient';
-                $userId = $userModel->create([
-                    'name' => trim($_POST['name'] ?? ''),
-                    'email' => $email,
-                    'password' => $_POST['password'] ?? '',
-                    'role' => $role,
-                ]);
-                if ($role === 'patient') {
-                    (new Patient())->createProfile($userId, ['timezone' => 'UTC', 'preferences' => '', 'intake_status' => 'pending']);
+                $userId = 0;
+                try {
+                    $role = in_array($_POST['role'] ?? 'patient', ['patient', 'therapist', 'admin'], true) ? $_POST['role'] : 'patient';
+                    $userId = $userModel->create([
+                        'name' => trim($_POST['name'] ?? ''),
+                        'email' => $email,
+                        'password' => $_POST['password'] ?? '',
+                        'role' => $role,
+                    ]);
+                    if ($role === 'patient') {
+                        (new Patient())->createProfile($userId, ['timezone' => 'UTC', 'preferences' => '', 'intake_status' => 'pending']);
+                    }
+                    if ($role === 'therapist') {
+                        (new Therapist())->createProfile($userId, ['specialization' => 'General', 'license_number' => '', 'availability' => 'weekdays', 'rating' => 0]);
+                    }
+                    $this->redirect($this->config['app']['base_url'] . '?controller=auth&action=login');
+                    return;
+                } catch (Exception $ex) {
+                    if ($userId > 0) {
+                        (new User())->delete($userId);
+                    }
+                    $error = 'Registration failed. Please try again later.';
                 }
-                if ($role === 'therapist') {
-                    (new Therapist())->createProfile($userId, ['specialty' => 'General', 'license_number' => '', 'availability' => 'weekdays']);
-                }
-                $this->redirect($this->config['app']['base_url'] . '?controller=auth&action=login');
             }
         }
         $this->view->render('auth/register', ['error' => $error]);

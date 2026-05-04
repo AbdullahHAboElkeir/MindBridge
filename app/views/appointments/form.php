@@ -1,3 +1,4 @@
+<?php $therapists = $therapists ?? []; $criteria = $criteria ?? []; ?>
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
@@ -6,6 +7,23 @@
                 <?php if (!empty($error)): ?>
                     <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
                 <?php endif; ?>
+                <div class="mb-4">
+                    <h5 class="mb-3">Match with a therapist</h5>
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" name="specialization" class="form-control" placeholder="Specialization" value="<?php echo htmlspecialchars($criteria['specialization'] ?? ''); ?>">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="timezone" class="form-control" placeholder="Availability / Timezone" value="<?php echo htmlspecialchars($criteria['timezone'] ?? ''); ?>">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="license_number" class="form-control" placeholder="License number" value="<?php echo htmlspecialchars($criteria['license_number'] ?? ''); ?>">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-outline-primary">Find matched therapists</button>
+                        </div>
+                    </form>
+                </div>
                 <form method="post" novalidate>
                     <div class="mb-3">
                         <label class="form-label">Therapist</label>
@@ -13,7 +31,7 @@
                             <option value="">Select therapist</option>
                             <?php foreach ($therapists as $therapist): ?>
                                 <?php if ($therapist['role'] === 'therapist'): ?>
-                                    <option value="<?php echo $therapist['id']; ?>"><?php echo htmlspecialchars($therapist['name']); ?></option>
+                                    <option value="<?php echo $therapist['id']; ?>"><?php echo htmlspecialchars($therapist['name'] . ' — ' . ($therapist['specialization'] ?? 'General') . ' — License: ' . ($therapist['license_number'] ?? 'N/A') . ' — Rating: ' . ($therapist['rating'] ?? 0) . ' — Score: ' . ($therapist['match_score'] ?? '0')); ?></option>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </select>

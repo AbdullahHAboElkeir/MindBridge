@@ -25,10 +25,14 @@ CREATE TABLE patient_profiles (
 CREATE TABLE therapist_profiles (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL UNIQUE,
-  specialty VARCHAR(120) DEFAULT 'General',
+  specialization VARCHAR(120) DEFAULT 'General',
   license_number VARCHAR(120) DEFAULT NULL,
   availability VARCHAR(120) DEFAULT 'weekdays',
+<<<<<<< Updated upstream
   rating DECIMAL(3,2) DEFAULT 0.00,
+=======
+  rating TINYINT NOT NULL DEFAULT 0,
+>>>>>>> Stashed changes
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

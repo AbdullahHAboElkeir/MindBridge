@@ -11,7 +11,13 @@ class AppointmentController extends Controller
     public function book(): void
     {
         $this->authorize(['patient']);
-        $therapists = (new User())->search('');
+        $criteria = [
+            'specialization' => trim($_GET['specialization'] ?? ''),
+            'timezone' => trim($_GET['timezone'] ?? ''),
+            'license_number' => trim($_GET['license_number'] ?? ''),
+        ];
+
+        $therapists = (new MatchingEngine())->matchTherapists($criteria);
         $error = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
@@ -31,6 +37,6 @@ class AppointmentController extends Controller
                 $error = $ex->getMessage();
             }
         }
-        $this->view->render('appointments/form', ['therapists' => $therapists, 'error' => $error]);
+        $this->view->render('appointments/form', ['therapists' => $therapists, 'criteria' => $criteria, 'error' => $error]);
     }
 }

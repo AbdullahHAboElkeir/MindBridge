@@ -21,13 +21,39 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Role</label>
-                        <select name="role" class="form-select">
+                        <select name="role" id="roleSelect" class="form-select" onchange="toggleTherapistFields()">
                             <option value="patient">Patient</option>
                             <option value="therapist">Therapist</option>
+                            <option value="admin">Admin</option>
                         </select>
+                    </div>
+                    <div id="therapistFields" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Specialization</label>
+                            <input type="text" name="specialization" class="form-control" value="General">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">License number</label>
+                            <input type="text" name="license_number" class="form-control" value="">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Therapist rating (0-5)</label>
+                            <input type="number" name="rating" class="form-control" min="0" max="5" step="1" value="0">
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Register</button>
                 </form>
+                <script>
+                function toggleTherapistFields() {
+                    const role = document.getElementById('roleSelect').value;
+                    const therapistFields = document.getElementById('therapistFields');
+                    if (role === 'therapist') {
+                        therapistFields.style.display = 'block';
+                    } else {
+                        therapistFields.style.display = 'none';
+                    }
+                }
+                </script>
             </div>
         </div>
     </div>
