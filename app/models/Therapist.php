@@ -1,9 +1,7 @@
 <?php
 class Therapist extends Model
 {
-<<<<<<< Updated upstream
     protected $table = 'therapist_profiles';
-=======
     private function hasColumn(string $column): bool
     {
         $stmt = $this->db->prepare('SHOW COLUMNS FROM therapist_profiles LIKE :column');
@@ -15,7 +13,6 @@ class Therapist extends Model
     {
         return $this->hasColumn('specialization') ? 'specialization' : 'specialty';
     }
->>>>>>> Stashed changes
 
     public function profile(int $userId): ?array
     {
@@ -30,44 +27,32 @@ class Therapist extends Model
 
     public function createProfile(int $userId, array $data): bool
     {
-<<<<<<< Updated upstream
         $stmt = $this->db->prepare('INSERT INTO therapist_profiles (user_id, specialty, license_number, availability, rating, created_at) VALUES (:user_id, :specialty, :license_number, :availability, :rating, NOW())');
-=======
         $field = $this->getSpecializationField();
         $sql = sprintf('INSERT INTO therapist_profiles (user_id, %s, license_number, availability, rating, created_at) VALUES (:user_id, :specialization, :license_number, :availability, :rating, NOW())', $field);
         $stmt = $this->db->prepare($sql);
->>>>>>> Stashed changes
         return $stmt->execute([
             ':user_id' => $userId,
             ':specialization' => $data['specialization'] ?? 'General',
             ':license_number' => $data['license_number'] ?? '',
             ':availability' => $data['availability'] ?? 'weekdays',
-<<<<<<< Updated upstream
             ':rating' => $data['rating'] ?? 0.00,
-=======
             ':rating' => $data['rating'] ?? 0,
->>>>>>> Stashed changes
         ]);
     }
 
     public function updateProfile(int $userId, array $data): bool
     {
-<<<<<<< Updated upstream
         $stmt = $this->db->prepare('UPDATE therapist_profiles SET specialty = :specialty, license_number = :license_number, availability = :availability, rating = :rating WHERE user_id = :user_id');
-=======
         $field = $this->getSpecializationField();
         $sql = sprintf('UPDATE therapist_profiles SET %s = :specialization, license_number = :license_number, availability = :availability, rating = :rating WHERE user_id = :user_id', $field);
         $stmt = $this->db->prepare($sql);
->>>>>>> Stashed changes
         return $stmt->execute([
             ':specialization' => $data['specialization'] ?? 'General',
             ':license_number' => $data['license_number'] ?? '',
             ':availability' => $data['availability'] ?? 'weekdays',
-<<<<<<< Updated upstream
             ':rating' => $data['rating'] ?? 0.00,
-=======
             ':rating' => $data['rating'] ?? 0,
->>>>>>> Stashed changes
             ':user_id' => $userId,
         ]);
     }
