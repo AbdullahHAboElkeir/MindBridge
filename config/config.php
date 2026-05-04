@@ -7,7 +7,7 @@ if (!empty($_SERVER['HTTP_HOST'])) {
 }
 return [
     'db' => [
-        'host' => '127.0.0.1',
+        'host' => 'localhost',
         'name' => 'mindbridge',
         'user' => 'root',
         'pass' => '',
