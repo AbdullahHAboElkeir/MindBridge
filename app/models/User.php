@@ -151,7 +151,7 @@ class User
                 $data['timezone'] ?? 'UTC',
                 $id,
             ]
-        ) >= 0;
+        ) > 0;
     }
 
     /** Update password */

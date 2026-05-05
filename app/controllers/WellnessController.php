@@ -6,6 +6,7 @@ class WellnessController extends Controller
     {
         parent::__construct();
         Middleware::requireAuth();
+        require_once BASE_PATH . '/app/models/Wellness.php';
     }
 
     private function getPatient(): array
@@ -19,7 +20,6 @@ class WellnessController extends Controller
     public function mood(): void
     {
         Middleware::requirePatient();
-        require_once BASE_PATH . '/app/models/Wellness.php';
         $patient    = $this->getPatient();
         $moodModel  = new MoodEntry();
         $todayMood  = $moodModel->getToday($patient['id']);
@@ -36,7 +36,6 @@ class WellnessController extends Controller
     public function storeMood(): void
     {
         Middleware::requirePatient();
-        require_once BASE_PATH . '/app/models/Wellness.php';
         $patient   = $this->getPatient();
         $moodModel = new MoodEntry();
         $level     = max(1, min(10, (int)$this->post('mood_level', 5)));
@@ -72,7 +71,6 @@ class WellnessController extends Controller
     public function journal(): void
     {
         Middleware::requirePatient();
-        require_once BASE_PATH . '/app/models/Wellness.php';
         $patient      = $this->getPatient();
         $journalModel = new Journal();
         $page         = (int)$this->get('page', 1);
@@ -90,7 +88,6 @@ class WellnessController extends Controller
     public function storeJournal(): void
     {
         Middleware::requirePatient();
-        require_once BASE_PATH . '/app/models/Wellness.php';
         $patient      = $this->getPatient();
         $journalModel = new Journal();
         $id           = (int)$this->post('entry_id', 0);

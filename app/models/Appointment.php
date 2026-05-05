@@ -12,35 +12,63 @@ class Appointment
                     pu.first_name AS p_first, pu.last_name AS p_last, pu.email AS p_email,
                     tu.first_name AS t_first, tu.last_name AS t_last, tu.email AS t_email
              FROM appointments a
-             JOIN patients p ON p.id = a.patient_id
-             JOIN users pu ON pu.id = p.user_id
-             JOIN therapists t ON t.id = a.therapist_id
-             JOIN users tu ON tu.id = t.user_id
+             JOIN patients  p  ON p.id  = a.patient_id
+             JOIN users     pu ON pu.id = p.user_id
+             JOIN therapists t ON t.id  = a.therapist_id
+             JOIN users     tu ON tu.id = t.user_id
              WHERE a.id = ?", [$id]);
     }
 
+    /**
+     * Get all appointments for a patient.
+     * Fixed: use parameterized query for status — no string concatenation.
+     */
     public function getForPatient(int $patientId, string $status = ''): array
     {
-        $where = $status ? "AND a.status = '$status'" : "";
+        if ($status !== '') {
+            return $this->db->fetchAll(
+                "SELECT a.*, tu.first_name AS t_first, tu.last_name AS t_last
+                 FROM appointments a
+                 JOIN therapists t ON t.id  = a.therapist_id
+                 JOIN users     tu ON tu.id = t.user_id
+                 WHERE a.patient_id = ? AND a.status = ?
+                 ORDER BY a.scheduled_at DESC",
+                [$patientId, $status]);
+        }
         return $this->db->fetchAll(
             "SELECT a.*, tu.first_name AS t_first, tu.last_name AS t_last
              FROM appointments a
-             JOIN therapists t ON t.id = a.therapist_id
-             JOIN users tu ON tu.id = t.user_id
-             WHERE a.patient_id = ? $where
-             ORDER BY a.scheduled_at DESC", [$patientId]);
+             JOIN therapists t ON t.id  = a.therapist_id
+             JOIN users     tu ON tu.id = t.user_id
+             WHERE a.patient_id = ?
+             ORDER BY a.scheduled_at DESC",
+            [$patientId]);
     }
 
+    /**
+     * Get all appointments for a therapist.
+     * Fixed: parameterized status filter.
+     */
     public function getForTherapist(int $therapistId, string $status = ''): array
     {
-        $where = $status ? "AND a.status = '$status'" : "";
+        if ($status !== '') {
+            return $this->db->fetchAll(
+                "SELECT a.*, pu.first_name AS p_first, pu.last_name AS p_last
+                 FROM appointments a
+                 JOIN patients p  ON p.id  = a.patient_id
+                 JOIN users   pu ON pu.id = p.user_id
+                 WHERE a.therapist_id = ? AND a.status = ?
+                 ORDER BY a.scheduled_at DESC",
+                [$therapistId, $status]);
+        }
         return $this->db->fetchAll(
             "SELECT a.*, pu.first_name AS p_first, pu.last_name AS p_last
              FROM appointments a
-             JOIN patients p ON p.id = a.patient_id
-             JOIN users pu ON pu.id = p.user_id
-             WHERE a.therapist_id = ? $where
-             ORDER BY a.scheduled_at DESC", [$therapistId]);
+             JOIN patients p  ON p.id  = a.patient_id
+             JOIN users   pu ON pu.id = p.user_id
+             WHERE a.therapist_id = ?
+             ORDER BY a.scheduled_at DESC",
+            [$therapistId]);
     }
 
     /** Check for double-booking conflict */
@@ -58,11 +86,12 @@ class Appointment
     public function book(int $patientId, int $therapistId, string $datetime, int $duration, string $type, string $notes = ''): int
     {
         $id = $this->db->insert(
-            "INSERT INTO appointments (patient_id, therapist_id, scheduled_at, duration_minutes, type, status, patient_notes, created_at)
+            "INSERT INTO appointments
+               (patient_id, therapist_id, scheduled_at, duration_minutes, type, status, patient_notes, created_at)
              VALUES (?,?,?,?,?,'scheduled',?,NOW())",
             [$patientId, $therapistId, $datetime, $duration, $type, $notes]);
 
-        // Create pending payment
+        // Create pending payment automatically
         $therapist = $this->db->fetchOne("SELECT session_rate FROM therapists WHERE id=?", [$therapistId]);
         if ($therapist) {
             $this->db->insert(
@@ -76,7 +105,8 @@ class Appointment
     public function cancel(int $id, int $cancelledBy, string $reason = ''): bool
     {
         return $this->db->execute(
-            "UPDATE appointments SET status='cancelled', cancel_reason=?, cancelled_by=?, updated_at=NOW()
+            "UPDATE appointments
+             SET status='cancelled', cancel_reason=?, cancelled_by=?, updated_at=NOW()
              WHERE id=?",
             [$reason, $cancelledBy, $id]) > 0;
     }
@@ -90,12 +120,15 @@ class Appointment
 
     public function updateStatus(int $id, string $status): void
     {
-        $this->db->execute("UPDATE appointments SET status=?, updated_at=NOW() WHERE id=?", [$status, $id]);
+        $this->db->execute(
+            "UPDATE appointments SET status=?, updated_at=NOW() WHERE id=?",
+            [$status, $id]);
     }
 
     public function getAvailableSlots(int $therapistId, string $date): array
     {
         $dow = (int)date('w', strtotime($date));
+
         $availability = $this->db->fetchAll(
             "SELECT start_time, end_time FROM therapist_availability
              WHERE therapist_id=? AND day_of_week=? AND is_active=1",
@@ -111,29 +144,34 @@ class Appointment
             $start = strtotime("$date {$avail['start_time']}");
             $end   = strtotime("$date {$avail['end_time']}");
 
-            while ($start + 50*60 <= $end) {
-                $slotEnd = $start + 50*60;
-                $slotStr = date('H:i', $start);
+            while ($start + 50 * 60 <= $end) {
+                $slotEnd  = $start + 50 * 60;
+                $slotStr  = date('H:i', $start);
                 $conflict = false;
 
                 foreach ($booked as $b) {
                     $bStart = strtotime($b['scheduled_at']);
                     $bEnd   = $bStart + ($b['duration_minutes'] * 60);
                     if ($start < $bEnd && $slotEnd > $bStart) {
-                        $conflict = true; break;
+                        $conflict = true;
+                        break;
                     }
                 }
 
                 if (!$conflict && $start > time()) {
                     $slots[] = $slotStr;
                 }
-                $start += 60*60; // 1-hour blocks
+                $start += 3600; // 1-hour blocks
             }
         }
         return $slots;
     }
 }
 
+/**
+ * SessionRecord — therapy session notes model.
+ * Stored in the `sessions` table, 1-to-1 with `appointments`.
+ */
 class SessionRecord
 {
     private Database $db;
@@ -141,7 +179,8 @@ class SessionRecord
 
     public function getByAppointmentId(int $appointmentId): array|false
     {
-        return $this->db->fetchOne("SELECT * FROM sessions WHERE appointment_id=?", [$appointmentId]);
+        return $this->db->fetchOne(
+            "SELECT * FROM sessions WHERE appointment_id=?", [$appointmentId]);
     }
 
     public function getForPatient(int $patientId): array
@@ -150,11 +189,12 @@ class SessionRecord
             "SELECT s.*, a.scheduled_at, a.type, a.status AS appt_status,
                     tu.first_name AS t_first, tu.last_name AS t_last
              FROM sessions s
-             JOIN appointments a ON a.id = s.appointment_id
-             JOIN therapists t ON t.id = a.therapist_id
-             JOIN users tu ON tu.id = t.user_id
-             WHERE a.patient_id=?
-             ORDER BY a.scheduled_at DESC", [$patientId]);
+             JOIN appointments a  ON a.id  = s.appointment_id
+             JOIN therapists   t  ON t.id  = a.therapist_id
+             JOIN users        tu ON tu.id = t.user_id
+             WHERE a.patient_id = ?
+             ORDER BY a.scheduled_at DESC",
+            [$patientId]);
     }
 
     public function getForTherapist(int $therapistId): array
@@ -163,11 +203,12 @@ class SessionRecord
             "SELECT s.*, a.scheduled_at, a.type,
                     pu.first_name AS p_first, pu.last_name AS p_last
              FROM sessions s
-             JOIN appointments a ON a.id = s.appointment_id
-             JOIN patients p ON p.id = a.patient_id
-             JOIN users pu ON pu.id = p.user_id
-             WHERE a.therapist_id=?
-             ORDER BY a.scheduled_at DESC", [$therapistId]);
+             JOIN appointments a  ON a.id  = s.appointment_id
+             JOIN patients     p  ON p.id  = a.patient_id
+             JOIN users        pu ON pu.id = p.user_id
+             WHERE a.therapist_id = ?
+             ORDER BY a.scheduled_at DESC",
+            [$therapistId]);
     }
 
     public function saveNotes(int $appointmentId, array $data): void
@@ -175,21 +216,30 @@ class SessionRecord
         $existing = $this->getByAppointmentId($appointmentId);
         if ($existing) {
             $this->db->execute(
-                "UPDATE sessions SET therapist_notes=?, techniques_used=?, homework=?,
-                 outcome=?, follow_up_date=?, updated_at=NOW()
+                "UPDATE sessions
+                 SET therapist_notes=?, techniques_used=?, homework=?,
+                     outcome=?, follow_up_date=?, updated_at=NOW()
                  WHERE appointment_id=?",
-                [$data['therapist_notes'] ?? null, $data['techniques_used'] ?? null,
-                 $data['homework'] ?? null, $data['outcome'] ?? null,
-                 $data['follow_up_date'] ?: null, $appointmentId]);
+                [$data['therapist_notes'] ?? null,
+                 $data['techniques_used'] ?? null,
+                 $data['homework']        ?? null,
+                 $data['outcome']         ?? null,
+                 $data['follow_up_date']  ?: null,
+                 $appointmentId]);
         } else {
             $this->db->insert(
-                "INSERT INTO sessions (appointment_id, therapist_notes, techniques_used,
-                 homework, outcome, follow_up_date, started_at, ended_at)
+                "INSERT INTO sessions
+                   (appointment_id, therapist_notes, techniques_used,
+                    homework, outcome, follow_up_date, started_at, ended_at)
                  VALUES (?,?,?,?,?,?,?,?)",
-                [$appointmentId, $data['therapist_notes'] ?? null, $data['techniques_used'] ?? null,
-                 $data['homework'] ?? null, $data['outcome'] ?? null,
-                 $data['follow_up_date'] ?: null,
-                 $data['started_at'] ?? null, $data['ended_at'] ?? null]);
+                [$appointmentId,
+                 $data['therapist_notes'] ?? null,
+                 $data['techniques_used'] ?? null,
+                 $data['homework']        ?? null,
+                 $data['outcome']         ?? null,
+                 $data['follow_up_date']  ?: null,
+                 $data['started_at']      ?? null,
+                 $data['ended_at']        ?? null]);
         }
     }
 }

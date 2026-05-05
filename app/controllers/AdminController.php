@@ -6,6 +6,8 @@ class AdminController extends Controller
     {
         parent::__construct();
         Middleware::requireAdmin();
+        require_once BASE_PATH . '/app/models/Forum.php';
+        require_once BASE_PATH . '/app/models/Wellness.php';
     }
 
     /** GET /admin/users */
@@ -73,7 +75,6 @@ class AdminController extends Controller
     /** GET /admin/moderation */
     public function moderation(): void
     {
-        require_once BASE_PATH . '/app/models/Forum.php';
         $pending   = (new ForumPost())->getPending();
         $pageTitle = 'Content Moderation';
         $this->view('admin.moderation', compact('pageTitle','pending'));
@@ -82,7 +83,6 @@ class AdminController extends Controller
     /** POST /admin/moderatePost */
     public function moderatePost(): void
     {
-        require_once BASE_PATH . '/app/models/Forum.php';
         $postId = (int)$this->post('post_id');
         $action = $this->post('action', 'publish');
         (new ForumPost())->updateStatus($postId, $action === 'approve' ? 'published' : 'removed');
@@ -94,8 +94,8 @@ class AdminController extends Controller
     /** GET /admin/resources */
     public function resources(): void
     {
-        require_once BASE_PATH . '/app/models/Wellness.php';
-        $resources = (new WellnessResource())->getAll();
+        // Pass adminAll:true so inactive resources are also visible to admin
+        $resources = (new WellnessResource())->getAll('', '', true);
         $pageTitle = 'Wellness Resources';
         $this->view('admin.resources', compact('pageTitle','resources'));
     }
@@ -103,7 +103,6 @@ class AdminController extends Controller
     /** POST /admin/storeResource */
     public function storeResource(): void
     {
-        require_once BASE_PATH . '/app/models/Wellness.php';
         $id   = (int)$this->post('resource_id', 0);
         $data = [
             'title'       => $this->post('title'),
@@ -127,7 +126,6 @@ class AdminController extends Controller
     /** POST /admin/deleteResource/{id} */
     public function deleteResource(int $id): void
     {
-        require_once BASE_PATH . '/app/models/Wellness.php';
         (new WellnessResource())->delete($id);
         $this->auditLog('delete_resource','wellness_resources',"Deleted resource ID: $id");
         Session::flash('success', 'Resource deleted.');
@@ -205,11 +203,13 @@ class AdminController extends Controller
              ORDER BY d.created_at DESC",
             [$status]);
 
-        $counts = [
-            'open'         => (int)($this->db->fetchOne("SELECT COUNT(*) AS c FROM disputes WHERE status='open'")['c'] ?? 0),
-            'under_review' => (int)($this->db->fetchOne("SELECT COUNT(*) AS c FROM disputes WHERE status='under_review'")['c'] ?? 0),
-            'resolved'     => (int)($this->db->fetchOne("SELECT COUNT(*) AS c FROM disputes WHERE status='resolved'")['c'] ?? 0),
-        ];
+        // Count all statuses for tab badges
+        $allCounts = $this->db->fetchAll(
+            "SELECT status, COUNT(*) AS cnt FROM disputes GROUP BY status");
+        $counts = [];
+        foreach ($allCounts as $row) {
+            $counts[$row['status']] = (int)$row['cnt'];
+        }
 
         $pageTitle = 'Disputes';
         $this->view('admin.disputes', compact('pageTitle','disputes','status','counts'));

@@ -2,8 +2,8 @@
 
 /**
  * Controller: Sessions
- * Displays therapy session records for patients and therapists.
- * Route: /sessions
+ * Shows completed therapy session records.
+ * Route: /sessions  →  SessionsController::index()
  */
 class SessionsController extends Controller
 {
@@ -16,32 +16,58 @@ class SessionsController extends Controller
     /** GET /sessions */
     public function index(): void
     {
-        require_once BASE_PATH . '/app/models/Appointment.php';
         $role   = Session::role();
         $userId = Session::userId();
 
         if ($role === 'patient') {
-            $patient = $this->db->fetchOne("SELECT id FROM patients WHERE user_id=?", [$userId]);
+            $patient = $this->db->fetchOne(
+                "SELECT id FROM patients WHERE user_id = ?", [$userId]);
             if (!$patient) { $this->redirect('dashboard'); }
-            $sessions = (new SessionRecord())->getForPatient($patient['id']);
+
+            $sessions = $this->db->fetchAll(
+                "SELECT s.*,
+                        a.scheduled_at, a.type, a.status AS appt_status,
+                        tu.first_name AS t_first, tu.last_name AS t_last
+                 FROM sessions s
+                 JOIN appointments a  ON a.id  = s.appointment_id
+                 JOIN therapists  t  ON t.id  = a.therapist_id
+                 JOIN users       tu ON tu.id = t.user_id
+                 WHERE a.patient_id = ?
+                 ORDER BY a.scheduled_at DESC",
+                [$patient['id']]);
+
         } elseif ($role === 'therapist') {
-            $therapist = $this->db->fetchOne("SELECT id FROM therapists WHERE user_id=?", [$userId]);
+            $therapist = $this->db->fetchOne(
+                "SELECT id FROM therapists WHERE user_id = ?", [$userId]);
             if (!$therapist) { $this->redirect('dashboard'); }
-            $sessions = (new SessionRecord())->getForTherapist($therapist['id']);
+
+            $sessions = $this->db->fetchAll(
+                "SELECT s.*,
+                        a.scheduled_at, a.type, a.status AS appt_status,
+                        pu.first_name AS p_first, pu.last_name AS p_last
+                 FROM sessions s
+                 JOIN appointments a  ON a.id  = s.appointment_id
+                 JOIN patients    p  ON p.id  = a.patient_id
+                 JOIN users       pu ON pu.id = p.user_id
+                 WHERE a.therapist_id = ?
+                 ORDER BY a.scheduled_at DESC",
+                [$therapist['id']]);
+
         } else {
             // Admin: all sessions
             $sessions = $this->db->fetchAll(
-                "SELECT s.*, a.scheduled_at, a.type, a.status AS appt_status,
+                "SELECT s.*,
+                        a.scheduled_at, a.type, a.status AS appt_status,
                         pu.first_name AS p_first, pu.last_name AS p_last,
                         tu.first_name AS t_first, tu.last_name AS t_last
                  FROM sessions s
-                 JOIN appointments a ON a.id = s.appointment_id
-                 JOIN patients p ON p.id = a.patient_id
-                 JOIN users pu ON pu.id = p.user_id
-                 JOIN therapists t ON t.id = a.therapist_id
-                 JOIN users tu ON tu.id = t.user_id
-                 ORDER BY a.scheduled_at DESC LIMIT 50"
-            );
+                 JOIN appointments a  ON a.id  = s.appointment_id
+                 JOIN patients    p  ON p.id  = a.patient_id
+                 JOIN users       pu ON pu.id = p.user_id
+                 JOIN therapists  t  ON t.id  = a.therapist_id
+                 JOIN users       tu ON tu.id = t.user_id
+                 ORDER BY a.scheduled_at DESC
+                 LIMIT 100");
         }
 
         $pageTitle = 'My Sessions';

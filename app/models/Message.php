@@ -13,21 +13,21 @@ class Message
     {
         return $this->db->fetchAll(
             "SELECT m.*,
-                    t.other_id,
+                    t.other_user_id,
                     u.first_name, u.last_name, u.role, u.avatar,
                     (SELECT COUNT(*) FROM messages m2
-                     WHERE m2.sender_id = t.other_id
+                     WHERE m2.sender_id   = t.other_user_id
                        AND m2.receiver_id = ?
-                       AND m2.is_read = 0) AS unread_count
+                       AND m2.is_read     = 0) AS unread_count
              FROM messages m
              JOIN (
-               SELECT IF(sender_id=?, receiver_id, sender_id) AS other_id,
+               SELECT IF(sender_id=?, receiver_id, sender_id) AS other_user_id,
                       MAX(id) AS max_id
                FROM messages
                WHERE sender_id = ? OR receiver_id = ?
                GROUP BY IF(sender_id=?, receiver_id, sender_id)
              ) t ON m.id = t.max_id
-             JOIN users u ON u.id = t.other_id
+             JOIN users u ON u.id = t.other_user_id
              ORDER BY m.created_at DESC",
             [$userId, $userId, $userId, $userId, $userId]);
     }

@@ -43,6 +43,14 @@ require_once BASE_PATH . '/app/views/layouts/header.php';
               <i class="bi bi-person-badge-fill me-2"></i>Therapist
             </label>
           </div>
+          <!-- Admin -->
+          <div class="col-6">
+            <input type="radio" class="btn-check" name="role" id="roleAdmin" value="admin"
+                   <?= ($data['role'] ?? '') === 'admin' ? 'checked' : '' ?>>
+            <label class="btn btn-outline-success w-100" for="roleAdmin">
+              <i class="bi bi-shield-lock-fill me-2"></i>Admin
+            </label>
+          </div>
         </div>
       </div>
 

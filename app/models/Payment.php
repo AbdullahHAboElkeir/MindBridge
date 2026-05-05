@@ -19,7 +19,7 @@ class Payment
 
     public function process(int $paymentId, string $method): bool
     {
-        $ref = strtoupper('TXN-'.date('Y-md').'-'.rand(1000,9999));
+        $ref = strtoupper('TXN-'.date('Y-m-d').'-'.rand(1000,9999));
         return $this->db->execute(
             "UPDATE payments SET status='paid', method=?, transaction_ref=?, paid_at=NOW() WHERE id=? AND status='pending'",
             [$method, $ref, $paymentId]) > 0;

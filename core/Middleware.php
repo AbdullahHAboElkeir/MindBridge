@@ -28,7 +28,15 @@ class Middleware
 
         $roles = (array) $roles;
         if (!in_array(Session::role(), $roles, true)) {
-            header('Location: ' . BASE_URL . '/errors/403');
+            http_response_code(403);
+            $view = BASE_PATH . '/app/views/errors/403.php';
+            if (file_exists($view)) {
+                require_once $view;
+            } else {
+                // Fallback: redirect to dashboard with flash error
+                Session::flash('error', 'You do not have permission to access that page.');
+                header('Location: ' . BASE_URL . '/dashboard');
+            }
             exit;
         }
     }

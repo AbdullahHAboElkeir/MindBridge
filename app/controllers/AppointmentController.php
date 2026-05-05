@@ -47,7 +47,15 @@ class AppointmentController extends Controller
             "SELECT t.id, t.session_rate, t.languages, t.specializations, u.first_name, u.last_name, u.gender
              FROM therapists t JOIN users u ON u.id=t.user_id WHERE u.status='active' AND t.is_available=1 ORDER BY t.rating DESC"
         );
-        $selectedTherapistId = (int)$this->get('therapist_id', $patient['assigned_therapist'] ? $this->db->fetchOne("SELECT id FROM therapists WHERE user_id=?",[$patient['assigned_therapist']])['id'] ?? 0 : 0);
+        
+        // Determine default therapist ID
+        $defaultTherapistId = 0;
+        if ($patient && !empty($patient['assigned_therapist'])) {
+            $therapist = $this->db->fetchOne("SELECT id FROM therapists WHERE user_id=?", [$patient['assigned_therapist']]);
+            $defaultTherapistId = $therapist['id'] ?? 0;
+        }
+        $selectedTherapistId = (int)$this->get('therapist_id', $defaultTherapistId);
+        
         $pageTitle = 'Book a Session';
         $this->view('appointments.book', compact('pageTitle','patient','therapists','selectedTherapistId'));
     }
@@ -59,6 +67,11 @@ class AppointmentController extends Controller
         if (!$this->isPost()) { $this->redirect('appointments/book'); }
 
         $patient = $this->db->fetchOne("SELECT id FROM patients WHERE user_id=?", [Session::userId()]);
+        if (!$patient) { 
+            Session::flash('error', 'Patient record not found.');
+            $this->redirect('appointments/book'); 
+        }
+        
         $therapistId = (int)$this->post('therapist_id');
         $date        = $this->post('date');
         $time        = $this->post('time');

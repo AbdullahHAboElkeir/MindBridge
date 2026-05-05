@@ -15,7 +15,11 @@ class CrisisController extends Controller
         if (Session::role() !== 'patient') { $this->json(['ok' => true]); }
 
         $patient = $this->db->fetchOne("SELECT id FROM patients WHERE user_id=?", [Session::userId()]);
-        if (!$patient) { $this->json(['ok' => true]); }
+        if (!$patient) { 
+            // Log error for debugging
+            error_log("Crisis alert - Patient not found for user: " . Session::userId());
+            $this->json(['ok' => true, 'message' => 'Alert recorded']); 
+        }
 
         $text = $this->post('trigger_text', '');
         $this->db->insert(

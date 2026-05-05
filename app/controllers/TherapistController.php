@@ -9,6 +9,7 @@ class TherapistController extends Controller
         parent::__construct();
         Middleware::requireTherapist();
         $this->therapistModel = $this->model('Therapist');
+        require_once BASE_PATH . '/app/models/Appointment.php';
     }
 
     /** GET /therapist/profile */
@@ -82,7 +83,6 @@ class TherapistController extends Controller
     /** GET /therapist/sessionNotes/{apptId} */
     public function sessionNotes(int $apptId): void
     {
-        require_once BASE_PATH . '/app/models/Appointment.php';
         $sessionModel = new SessionRecord();
         $appt   = (new Appointment())->getById($apptId);
         if (!$appt) { $this->redirect('appointments'); }
@@ -95,7 +95,6 @@ class TherapistController extends Controller
     public function saveNotes(): void
     {
         if (!$this->isPost()) { $this->redirect('appointments'); }
-        require_once BASE_PATH . '/app/models/Appointment.php';
         $apptId = (int)$this->post('appointment_id');
         $data   = [
             'therapist_notes' => $this->post('therapist_notes'),

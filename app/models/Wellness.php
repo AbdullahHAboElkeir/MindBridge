@@ -138,15 +138,15 @@ class WellnessResource
     private Database $db;
     public function __construct() { $this->db = Database::getInstance(); }
 
-    public function getAll(string $category = '', string $type = ''): array
+    public function getAll(string $category = '', string $type = '', bool $adminAll = false): array
     {
-        $conditions = ["is_active=1"];
+        $conditions = $adminAll ? [] : ["is_active=1"];
         $params = [];
         if ($category) { $conditions[] = "category=?"; $params[] = $category; }
         if ($type)     { $conditions[] = "type=?";     $params[] = $type; }
-        $where = 'WHERE ' . implode(' AND ', $conditions);
+        $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
         return $this->db->fetchAll(
-            "SELECT * FROM wellness_resources $where ORDER BY is_featured DESC, view_count DESC", $params);
+            "SELECT * FROM wellness_resources $where ORDER BY is_featured DESC, created_at DESC", $params);
     }
 
     public function getById(int $id): array|false
@@ -163,18 +163,25 @@ class WellnessResource
 
     public function save(array $data, int $id = 0): void
     {
+        // Use actual value, not isset() — AdminController always sets these keys
+        $isFeatured = (int)(bool)($data['is_featured'] ?? 0);
+        $isActive   = (int)(bool)($data['is_active']   ?? 1);
+
         if ($id) {
             $this->db->execute(
-                "UPDATE wellness_resources SET title=?, description=?, content=?, type=?, category=?, is_featured=?, is_active=?, updated_at=NOW() WHERE id=?",
+                "UPDATE wellness_resources
+                 SET title=?, description=?, content=?, type=?, category=?,
+                     is_featured=?, is_active=?, updated_at=NOW()
+                 WHERE id=?",
                 [$data['title'], $data['description'] ?? null, $data['content'] ?? null,
-                 $data['type'], $data['category'],
-                 isset($data['is_featured']) ? 1 : 0, isset($data['is_active']) ? 1 : 0, $id]);
+                 $data['type'], $data['category'], $isFeatured, $isActive, $id]);
         } else {
             $this->db->insert(
-                "INSERT INTO wellness_resources (title, description, content, type, category, is_featured, is_active, created_by)
+                "INSERT INTO wellness_resources
+                   (title, description, content, type, category, is_featured, is_active, created_by)
                  VALUES (?,?,?,?,?,?,?,?)",
                 [$data['title'], $data['description'] ?? null, $data['content'] ?? null,
-                 $data['type'], $data['category'], isset($data['is_featured']) ? 1 : 0, 1, Session::userId()]);
+                 $data['type'], $data['category'], $isFeatured, $isActive, Session::userId()]);
         }
     }
 

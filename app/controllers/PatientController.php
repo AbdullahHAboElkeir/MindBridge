@@ -9,6 +9,7 @@ class PatientController extends Controller
         parent::__construct();
         Middleware::requirePatient();
         $this->patientModel = $this->model('Patient');
+        require_once BASE_PATH . '/app/models/IntakeForm.php';
     }
 
     /** GET /patient/profile */
@@ -77,7 +78,12 @@ class PatientController extends Controller
     {
         if (!$this->isPost()) { $this->redirect('patient/intake'); }
         $patient = $this->patientModel->getByUserId(Session::userId());
-        $intakeModel = $this->model('IntakeForm');
+        if (!$patient) { 
+            Session::flash('error', 'Patient record not found.');
+            $this->redirect('patient/intake'); 
+        }
+        
+        $intakeModel = new IntakeForm();
 
         $data = [
             'primary_concerns'       => $this->post('primary_concerns'),
@@ -109,7 +115,6 @@ class PatientController extends Controller
     public function consent(): void
     {
         $patient = $this->patientModel->getByUserId(Session::userId());
-        require_once BASE_PATH . '/app/models/IntakeForm.php';
         $consentModel = new ConsentForm();
         $forms = $consentModel->getByPatientId($patient['id']);
         $signedTypes = array_column($forms, 'form_type');
@@ -121,7 +126,6 @@ class PatientController extends Controller
     public function submitConsent(): void
     {
         if (!$this->isPost()) { $this->redirect('patient/consent'); }
-        require_once BASE_PATH . '/app/models/IntakeForm.php';
         $consentModel = new ConsentForm();
         $patient = $this->patientModel->getByUserId(Session::userId());
 
@@ -149,7 +153,6 @@ class PatientController extends Controller
     public function matching(): void
     {
         $patient = $this->patientModel->getByUserId(Session::userId());
-        require_once BASE_PATH . '/app/models/IntakeForm.php'; // contains IntakeForm, ConsentForm, TherapistMatch
         $intakeModel    = new IntakeForm();
         $matchModel     = new TherapistMatch();
         $therapistModel = $this->model('Therapist');
@@ -171,7 +174,6 @@ class PatientController extends Controller
     public function selectTherapist(): void
     {
         if (!$this->isPost()) { $this->redirect('patient/matching'); }
-        require_once BASE_PATH . '/app/models/IntakeForm.php'; // contains TherapistMatch
         $matchModel = new TherapistMatch();
         $patient = $this->patientModel->getByUserId(Session::userId());
         $therapistId = (int)$this->post('therapist_id');
