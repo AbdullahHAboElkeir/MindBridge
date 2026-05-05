@@ -1,37 +1,101 @@
 <?php
+
+/**
+ * Database — Singleton PDO wrapper
+ */
 class Database
 {
     private static ?Database $instance = null;
-    private PDO $connection;
+    private PDO $pdo;
 
     private function __construct()
     {
-        $config = require __DIR__ . '/../config/config.php';
-        $dsn = sprintf('mysql:host=%s;dbname=%s;charset=%s',
-            $config['db']['host'],
-            $config['db']['name'],
-            $config['db']['charset']
-        );
+        $dsn = 'mysql:host=' . DB_HOST
+             . ';dbname='    . DB_NAME
+             . ';charset='   . DB_CHARSET;
 
         $options = [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::ATTR_EMULATE_PREPARES   => false,
         ];
 
-        $this->connection = new PDO($dsn, $config['db']['user'], $config['db']['pass'], $options);
+        try {
+            $this->pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+        } catch (PDOException $e) {
+            die(json_encode([
+                'error' => true,
+                'message' => 'Database connection failed: ' . $e->getMessage()
+            ]));
+        }
     }
 
+    /** Prevent cloning */
+    private function __clone() {}
+
+    /** Get singleton instance */
     public static function getInstance(): Database
     {
         if (self::$instance === null) {
-            self::$instance = new Database();
+            self::$instance = new self();
         }
         return self::$instance;
     }
 
+    /** Get the PDO connection */
     public function getConnection(): PDO
     {
-        return $this->connection;
+        return $this->pdo;
+    }
+
+    /** Prepare & execute a query — returns PDOStatement */
+    public function query(string $sql, array $params = []): PDOStatement
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt;
+    }
+
+    /** Fetch a single row */
+    public function fetchOne(string $sql, array $params = []): array|false
+    {
+        return $this->query($sql, $params)->fetch();
+    }
+
+    /** Fetch all rows */
+    public function fetchAll(string $sql, array $params = []): array
+    {
+        return $this->query($sql, $params)->fetchAll();
+    }
+
+    /** Insert a row and return last insert ID */
+    public function insert(string $sql, array $params = []): int
+    {
+        $this->query($sql, $params);
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    /** Execute update/delete — returns affected row count */
+    public function execute(string $sql, array $params = []): int
+    {
+        return $this->query($sql, $params)->rowCount();
+    }
+
+    /** Begin transaction */
+    public function beginTransaction(): void
+    {
+        $this->pdo->beginTransaction();
+    }
+
+    /** Commit transaction */
+    public function commit(): void
+    {
+        $this->pdo->commit();
+    }
+
+    /** Rollback transaction */
+    public function rollback(): void
+    {
+        $this->pdo->rollBack();
     }
 }

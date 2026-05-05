@@ -1,13 +1,17 @@
 <?php
 
+/**
+ * Controller: Home
+ * Public landing page.
+ */
 class HomeController extends Controller
 {
-    public function index()
+    public function index(): void
     {
-        if ($this->auth->isLoggedIn()) {
-            $this->redirect($this->config['app']['base_url'] . '?controller=dashboard&action=index');
+        if (Session::isLoggedIn()) {
+            $this->redirect('dashboard');
         }
-        
-        $this->view->render('home/index');
+        $pageTitle = 'Mental Health & Wellness Portal';
+        $this->view('home.index', compact('pageTitle'));
     }
 }

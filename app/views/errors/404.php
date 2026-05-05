@@ -1,11 +1,18 @@
-<div class="row justify-content-center">
-    <div class="col-lg-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-body text-center py-5">
-                <h1 class="display-4 text-secondary">404</h1>
-                <p class="lead">The requested page could not be found.</p>
-                <a href="<?php echo $baseUrl; ?>?controller=dashboard&action=index" class="btn btn-outline-primary">Back to dashboard</a>
-            </div>
-        </div>
-    </div>
+<?php
+require_once BASE_PATH . '/app/views/layouts/header.php';
+$pageTitle = '404 — Page Not Found';
+?>
+<div style="min-height:70vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:2rem;">
+  <div>
+    <div style="font-size:6rem;font-weight:800;color:var(--primary);line-height:1;">404</div>
+    <h2 class="fw-700 mb-3">Page Not Found</h2>
+    <p class="text-muted mb-4">The page you're looking for doesn't exist or has been moved.</p>
+    <a href="<?= BASE_URL ?>/dashboard" class="btn btn-primary me-2">
+      <i class="bi bi-house me-2"></i>Go Home
+    </a>
+    <a href="javascript:history.back()" class="btn btn-outline-primary">
+      <i class="bi bi-arrow-left me-2"></i>Go Back
+    </a>
+  </div>
 </div>
+<?php require_once BASE_PATH . '/app/views/layouts/footer.php'; ?>

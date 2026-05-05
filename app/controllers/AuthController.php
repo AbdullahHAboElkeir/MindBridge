@@ -1,65 +1,149 @@
 <?php
+
+/**
+ * Controller: Auth
+ * Handles login, registration, logout.
+ */
 class AuthController extends Controller
 {
-    public function index(): void
+    private User $userModel;
+
+    public function __construct()
     {
-        $this->redirect($this->config['app']['base_url'] . '?controller=auth&action=login');
+        parent::__construct();
+        $this->userModel = $this->model('User');
     }
 
+    /** GET /auth/login */
     public function login(): void
     {
-        $error = '';
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $email = trim($_POST['email'] ?? '');
-            $password = $_POST['password'] ?? '';
-            if ($this->auth->login($email, $password)) {
-                $this->redirect($this->config['app']['base_url'] . '?controller=dashboard&action=index');
-            }
-            $error = 'Invalid credentials. Please try again.';
-        }
-        $this->view->render('auth/login', ['error' => $error]);
+        Middleware::guestOnly();
+        $pageTitle = 'Sign In';
+        $this->view('auth.login', compact('pageTitle'));
     }
 
+    /** POST /auth/login */
+    public function doLogin(): void
+    {
+        Middleware::guestOnly();
+
+        if (!$this->isPost()) {
+            $this->redirect('auth/login');
+        }
+
+        $email    = $this->post('email', '');
+        $password = $this->post('password', '');
+        $errors   = [];
+
+        if (empty($email))    $errors[] = 'Email is required.';
+        if (empty($password)) $errors[] = 'Password is required.';
+
+        if (empty($errors)) {
+            $user = $this->userModel->authenticate($email, $password);
+
+            if ($user) {
+                // Set session
+                Session::set('user_id',    (int)$user['id']);
+                Session::set('email',      $user['email']);
+                Session::set('first_name', $user['first_name']);
+                Session::set('last_name',  $user['last_name']);
+                Session::set('role',       $user['role']);
+                Session::set('avatar',     $user['avatar']);
+
+                $this->auditLog('login', 'users', 'Login successful');
+                Session::flash('success', 'Welcome back, ' . $user['first_name'] . '!');
+                $this->redirect('dashboard');
+            } else {
+                $errors[] = 'Invalid email or password. Please try again.';
+            }
+        }
+
+        $pageTitle = 'Sign In';
+        $this->view('auth.login', compact('pageTitle', 'email', 'errors'));
+    }
+
+    /** GET /auth/register */
     public function register(): void
     {
-        $error = '';
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $userModel = new User();
-            $email = trim($_POST['email'] ?? '');
-            if ($userModel->findByEmail($email)) {
-                $error = 'Email already registered.';
-            } else {
-                $userId = 0;
-                try {
-                    $role = in_array($_POST['role'] ?? 'patient', ['patient', 'therapist', 'admin'], true) ? $_POST['role'] : 'patient';
-                    $userId = $userModel->create([
-                        'name' => trim($_POST['name'] ?? ''),
-                        'email' => $email,
-                        'password' => $_POST['password'] ?? '',
-                        'role' => $role,
-                    ]);
-                    if ($role === 'patient') {
-                        (new Patient())->createProfile($userId, ['timezone' => 'UTC', 'preferences' => '', 'intake_status' => 'pending']);
-                    }
-                    if ($role === 'therapist') {
-                        (new Therapist())->createProfile($userId, ['specialization' => 'General', 'license_number' => '', 'availability' => 'weekdays', 'rating' => 0]);
-                    }
-                    $this->redirect($this->config['app']['base_url'] . '?controller=auth&action=login');
-                    return;
-                } catch (Exception $ex) {
-                    if ($userId > 0) {
-                        (new User())->delete($userId);
-                    }
-                    $error = 'Registration failed. Please try again later.';
-                }
-            }
-        }
-        $this->view->render('auth/register', ['error' => $error]);
+        Middleware::guestOnly();
+        $pageTitle = 'Create Account';
+        $this->view('auth.register', compact('pageTitle'));
     }
 
+    /** POST /auth/register */
+    public function doRegister(): void
+    {
+        Middleware::guestOnly();
+
+        if (!$this->isPost()) {
+            $this->redirect('auth/register');
+        }
+
+        $data = [
+            'first_name'      => $this->post('first_name', ''),
+            'last_name'       => $this->post('last_name', ''),
+            'email'           => $this->post('email', ''),
+            'password'        => $this->post('password', ''),
+            'password_confirm'=> $this->post('password_confirm', ''),
+            'role'            => $this->post('role', 'patient'),
+            'gender'          => $this->post('gender', ''),
+            'phone'           => $this->post('phone', ''),
+            'timezone'        => $this->post('timezone', 'UTC'),
+            // Therapist extras
+            'license_number'  => $this->post('license_number', ''),
+            'specializations' => $this->post('specializations', ''),
+            'languages'       => $this->post('languages', 'English'),
+            'bio'             => $this->post('bio', ''),
+            'years_experience'=> $this->post('years_experience', 0),
+            'session_rate'    => $this->post('session_rate', 0),
+        ];
+
+        $errors = $this->validateRegistration($data);
+
+        if (empty($errors)) {
+            $userId = $this->userModel->register($data);
+
+            if ($userId) {
+                $this->auditLog('register', 'users', 'New ' . $data['role'] . ' registered: ' . $data['email']);
+                Session::flash('success', 'Account created! Please sign in.');
+                $this->redirect('auth/login');
+            } else {
+                $errors[] = 'Registration failed. Please try again.';
+            }
+        }
+
+        $pageTitle = 'Create Account';
+        $this->view('auth.register', compact('pageTitle', 'data', 'errors'));
+    }
+
+    /** GET /auth/logout */
     public function logout(): void
     {
-        $this->auth->logout();
-        $this->redirect($this->config['app']['base_url'] . '?controller=auth&action=login');
+        $this->auditLog('logout', 'users', 'User logged out');
+        Session::destroy();
+        Session::start();
+        Session::flash('success', 'You have been logged out.');
+        $this->redirect('auth/login');
+    }
+
+    /** Validate registration data */
+    private function validateRegistration(array $d): array
+    {
+        $errors = [];
+        if (empty($d['first_name'])) $errors[] = 'First name is required.';
+        if (empty($d['last_name']))  $errors[] = 'Last name is required.';
+        if (empty($d['email']) || !filter_var($d['email'], FILTER_VALIDATE_EMAIL))
+            $errors[] = 'A valid email address is required.';
+        if (strlen($d['password']) < 8)
+            $errors[] = 'Password must be at least 8 characters.';
+        if ($d['password'] !== $d['password_confirm'])
+            $errors[] = 'Passwords do not match.';
+        if (!in_array($d['role'], ['patient', 'therapist']))
+            $errors[] = 'Invalid role selected.';
+        if ($this->userModel->emailExists($d['email']))
+            $errors[] = 'This email is already registered.';
+        if ($d['role'] === 'therapist' && empty($d['license_number']))
+            $errors[] = 'License number is required for therapists.';
+        return $errors;
     }
 }

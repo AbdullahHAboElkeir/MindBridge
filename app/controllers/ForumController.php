@@ -1,56 +1,124 @@
 <?php
+
 class ForumController extends Controller
 {
+    public function __construct()
+    {
+        parent::__construct();
+        Middleware::requireAuth();
+    }
+
+    private function forumModel(): ForumPost
+    {
+        require_once BASE_PATH . '/app/models/Forum.php';
+        return new ForumPost();
+    }
+
+    /** GET /forum */
     public function index(): void
     {
-        $this->authorize(['patient', 'therapist', 'admin']);
-        $forums = (new Forum())->topics();
-        $this->view->render('forum/index', ['forums' => $forums]);
+        $model    = $this->forumModel();
+        $category = $this->get('category', '');
+        $page     = (int)$this->get('page', 1);
+        $posts    = $model->getAll($category, $page);
+        $total    = $model->count($category);
+        $pages    = max(1, ceil($total / ITEMS_PER_PAGE));
+        $categories = ['general','anxiety','depression','stress','relationships','mindfulness','trauma','grief'];
+        $pageTitle = 'Community Forum';
+        $this->view('forum.index', compact('pageTitle','posts','total','pages','page','category','categories'));
     }
 
-    public function view(): void
+    /** GET /forum/create */
+    public function create(): void
     {
-        $this->authorize(['patient', 'therapist', 'admin']);
-        $id = (int)($_GET['id'] ?? 0);
-        $forumModel = new Forum();
-        $forum = current(array_filter($forumModel->topics(), fn($topic) => $topic['id'] === $id));
-        if (!$forum) {
-            $this->view->render('errors/404');
-            return;
-        }
-        $posts = (new Post())->listByForum($id);
-        $this->view->render('forum/view', ['forum' => $forum, 'posts' => $posts]);
+        $pageTitle = 'New Post';
+        $this->view('forum.create', compact('pageTitle'));
     }
 
-    public function post(): void
+    /** POST /forum/store */
+    public function store(): void
     {
-        $this->authorize(['patient', 'therapist', 'admin']);
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $forumId = (int)($_POST['forum_id'] ?? 0);
-            (new Post())->add([
-                'forum_id' => $forumId,
-                'user_id' => $this->auth->user()['id'],
-                'content' => trim($_POST['content'] ?? ''),
-                'is_anonymous' => isset($_POST['anonymous']),
-            ]);
-            AuditLog::record($this->auth->user()['id'], 'forum.post', 'Added a forum post.');
-            $this->redirect($this->config['app']['base_url'] . '?controller=forum&action=view&id=' . $forumId);
+        if (!$this->isPost()) { $this->redirect('forum/create'); }
+
+        $data = [
+            'title'        => $this->post('title'),
+            'content'      => $this->post('content'),
+            'category'     => $this->post('category', 'general'),
+            'is_anonymous' => $this->post('is_anonymous'),
+            'pseudonym'    => $this->post('pseudonym', ''),
+        ];
+
+        if (empty($data['title']) || empty($data['content'])) {
+            Session::flash('error', 'Title and content are required.');
+            $this->redirect('forum/create');
         }
+
+        // Crisis check
+        $text = strtolower($data['content']);
+        foreach (CRISIS_KEYWORDS as $kw) {
+            if (str_contains($text, $kw) && Session::role() === 'patient') {
+                $patient = $this->db->fetchOne("SELECT id FROM patients WHERE user_id=?", [Session::userId()]);
+                if ($patient) {
+                    $this->db->insert(
+                        "INSERT INTO crisis_alerts (patient_id, trigger_text, source, severity, status, created_at)
+                         VALUES (?,?,'forum','medium','new',NOW())",
+                        [$patient['id'], substr($data['content'], 0, 500)]);
+                }
+                break;
+            }
+        }
+
+        $postId = $this->forumModel()->create(Session::userId(), $data);
+        $this->auditLog('create_post', 'forum_posts', "Created forum post ID: $postId");
+        Session::flash('success', 'Post published successfully!');
+        $this->redirect("forum/view/$postId");
     }
 
+    /** GET /forum/view/{id} */
+    public function view(int $id): void
+    {
+        $model   = $this->forumModel();
+        $post    = $model->getById($id);
+        if (!$post) { $this->redirect('forum'); }
+        $comments  = $model->getComments($id);
+        $pageTitle = $post['title'];
+        $this->view('forum.view', compact('pageTitle','post','comments'));
+    }
+
+    /** POST /forum/comment */
     public function comment(): void
     {
-        $this->authorize(['patient', 'therapist', 'admin']);
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $postId = (int)($_POST['post_id'] ?? 0);
-            (new Comment())->add([
-                'post_id' => $postId,
-                'user_id' => $this->auth->user()['id'],
-                'content' => trim($_POST['content'] ?? ''),
-                'is_anonymous' => isset($_POST['anonymous']),
-            ]);
-            AuditLog::record($this->auth->user()['id'], 'forum.comment', 'Added a comment.');
-            $this->redirect($this->config['app']['base_url'] . '?controller=forum&action=view&id=' . (int)($_POST['forum_id'] ?? 0));
+        if (!$this->isPost()) { $this->redirect('forum'); }
+        $postId = (int)$this->post('post_id');
+        $data   = [
+            'content'      => $this->post('content'),
+            'is_anonymous' => $this->post('is_anonymous'),
+            'pseudonym'    => $this->post('pseudonym', ''),
+        ];
+        if (empty($data['content'])) {
+            Session::flash('error', 'Comment cannot be empty.');
+            $this->redirect("forum/view/$postId");
         }
+        $this->forumModel()->addComment($postId, Session::userId(), $data);
+        Session::flash('success', 'Comment added.');
+        $this->redirect("forum/view/$postId");
+    }
+
+    /** POST /forum/report */
+    public function report(): void
+    {
+        if (!$this->isPost()) { $this->redirect('forum'); }
+        $type     = $this->post('type');
+        $targetId = (int)$this->post('target_id');
+        $reason   = $this->post('reason', 'other');
+        $details  = $this->post('details', '');
+
+        $this->db->insert(
+            "INSERT INTO reports (reporter_id, type, target_id, reason, details, status, created_at)
+             VALUES (?,?,?,?,?,'pending',NOW())",
+            [Session::userId(), $type, $targetId, $reason, $details]);
+
+        Session::flash('success', 'Report submitted. Our team will review it.');
+        $this->redirect('forum');
     }
 }

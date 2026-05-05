@@ -1,8 +1,10 @@
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^ index.php [L,QSA]
-</IfModule>
+Options -Indexes
+RewriteEngine On
+RewriteBase /MindBridge/MindBridge/
 
-DirectoryIndex index.php
+# Allow direct access to real files and folders
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Route everything else through index.php
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
