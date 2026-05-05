@@ -2,6 +2,7 @@
 $baseUrl = BASE_URL;
 require_once BASE_PATH . '/app/views/layouts/header.php';
 require_once BASE_PATH . '/app/views/layouts/sidebar.php';
+
 ?>
 <div class="main-content">
   <div class="page-header fade-in-up">

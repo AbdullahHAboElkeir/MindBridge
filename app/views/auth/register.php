@@ -6,6 +6,78 @@ $data      = $data ?? [];
 $baseUrl   = BASE_URL;
 require_once BASE_PATH . '/app/views/layouts/header.php';
 ?>
+<!-- Back to home page -->
+<!-- استدعاء مكتبة الأيقونات (لو مش عندك) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    /* حاوية الزرار - هنخليها فوق على الشمال */
+    .nav-header-container {
+        position: relative;
+        padding: 20px;
+        display: flex;
+        justify-content: flex-start; /* بيخلي الزرار يروح أقصى اليسار */
+    }
+
+    .back-btn-premium {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 18px;
+       
+       
+        color: #2d3436;
+        text-decoration: none;
+        border-radius: 15px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        border: 1px solid rgba(0, 123, 255, 0.2);
+       
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* تصميم الأيقونة الدائرية */
+    .icon-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 35px;
+        height: 35px;
+        background: linear-gradient(135deg, #007bff, #00d2ff);
+        color: white;
+        border-radius: 10px;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
+
+    /* تأثيرات الحركة */
+    .back-btn-premium:hover {
+        background: #007bff;
+        color: white !important;
+        transform: translateX(5px) scale(1.02);
+        box-shadow: 0 10px 20px rgba(0, 123, 255, 0.2);
+    }
+
+    .back-btn-premium:hover .icon-box {
+        background: white;
+        color: #007bff;
+        transform: rotate(-15deg);
+    }
+
+    /* إخفاء الخط تحت اللينك */
+    .back-btn-premium:hover {
+        text-decoration: none;
+    }
+</style>
+
+<div class="nav-header-container">
+    <a href="<?= $baseUrl ?>" class="back-btn-premium">
+        <div class="icon-box">
+            <i class="bi bi-chevron-left"></i>
+        </div>
+        <span>Back to MindBridge</span>
+    </a>
+</div>
 
 <div class="auth-wrapper" style="align-items:flex-start;padding:2rem;">
   <div class="auth-card" style="max-width:560px;margin:auto;">

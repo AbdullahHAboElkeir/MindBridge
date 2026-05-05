@@ -37,12 +37,14 @@ class User
         try {
             $this->db->beginTransaction();
 
+            $name = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
             $userId = $this->db->insert(
-                "INSERT INTO users (email, password, first_name, last_name, role, status, gender, phone, timezone, email_verified, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())",
+                "INSERT INTO users (email, password, name, first_name, last_name, role, status, gender, phone, timezone, email_verified, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())",
                 [
                     strtolower(trim($data['email'])),
                     password_hash($data['password'], PASSWORD_DEFAULT),
+                    $name,
                     trim($data['first_name']),
                     trim($data['last_name']),
                     $data['role'] ?? 'patient',

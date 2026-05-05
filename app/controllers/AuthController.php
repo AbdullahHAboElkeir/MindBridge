@@ -15,6 +15,11 @@ class AuthController extends Controller
     }
 
     /** GET /auth/login */
+    public function index(): void
+    {
+        $this->login();
+    }
+
     public function login(): void
     {
         Middleware::guestOnly();
@@ -42,16 +47,20 @@ class AuthController extends Controller
             $user = $this->userModel->authenticate($email, $password);
 
             if ($user) {
+                // Regenerate session id to prevent fixation and persist auth state
+                Session::regenerate();
+
                 // Set session
                 Session::set('user_id',    (int)$user['id']);
                 Session::set('email',      $user['email']);
-                Session::set('first_name', $user['first_name']);
-                Session::set('last_name',  $user['last_name']);
+                Session::set('name',       $user['name'] ?? trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')));
+                Session::set('first_name', $user['first_name'] ?? '');
+                Session::set('last_name',  $user['last_name'] ?? '');
                 Session::set('role',       $user['role']);
-                Session::set('avatar',     $user['avatar']);
+                Session::set('avatar',     $user['avatar'] ?? null);
 
                 $this->auditLog('login', 'users', 'Login successful');
-                Session::flash('success', 'Welcome back, ' . $user['first_name'] . '!');
+                Session::flash('success', 'Welcome back, ' . ($user['first_name'] ?? $user['email']) . '!');
                 $this->redirect('dashboard');
             } else {
                 $errors[] = 'Invalid email or password. Please try again.';

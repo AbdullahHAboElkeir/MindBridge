@@ -909,3 +909,18 @@ img { max-width: 100%; }
 .fw-600 { font-weight: 600 !important; }
 .fw-700 { font-weight: 700 !important; }
 .fw-800 { font-weight: 800 !important; }
+/* ── Back Home Button ────────────────────────── */
+.back-home-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #f8f9fa; /* لون خلفية فاتح */
+    color: #333; /* لون النص */
+    text-decoration: none;
+    border-radius: 50px; /* شكل دائري من الجوانب */
+    border: 1px solid #ddd;
+    font-weight: 600;
+    transition: all 0.3s ease; /* تنعيم الحركة */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+

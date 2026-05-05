@@ -20,6 +20,7 @@ CREATE TABLE `users` (
   `password`      VARCHAR(255) NOT NULL,
   `first_name`    VARCHAR(100) NOT NULL,
   `last_name`     VARCHAR(100) NOT NULL,
+  `name`          VARCHAR(201) NOT NULL DEFAULT '',
   `role`          ENUM('patient','therapist','admin') NOT NULL DEFAULT 'patient',
   `status`        ENUM('active','inactive','suspended','pending') NOT NULL DEFAULT 'pending',
   `avatar`        VARCHAR(255) DEFAULT NULL,

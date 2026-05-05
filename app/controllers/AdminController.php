@@ -10,6 +10,13 @@ class AdminController extends Controller
         require_once BASE_PATH . '/app/models/Wellness.php';
     }
 
+    public function index(): void
+    {
+        // Admin dashboard is rendered by DashboardController::index()
+        // which detects the admin role and shows the admin view.
+        $this->redirect('dashboard');
+    }
+
     /** GET /admin/users */
     public function users(): void
     {

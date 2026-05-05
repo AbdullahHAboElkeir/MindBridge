@@ -34,6 +34,9 @@ class App
         'therapist'     => 'Therapist',
         'dashboard'     => 'Dashboard',
         'auth'          => 'Auth',
+        'login'         => 'Auth',
+        'logout'        => 'Auth',
+        'register'      => 'Auth',
         'home'          => 'Home',
     ];
 
@@ -87,9 +90,17 @@ class App
     /**
      * Convert URL segment to camelCase method name.
      * e.g. "do-login" → "doLogin", "update_profile" → "updateProfile"
+     * If segment has no separators (hyphens/underscores), it is returned
+     * as-is so camelCase URLs like /auth/doLogin still resolve correctly.
      */
     private function resolveMethod(string $segment): string
     {
+        // If the segment already contains uppercase letters and no separators,
+        // return it unchanged (e.g. doLogin, auditLogs, manageUser)
+        if (!str_contains($segment, '-') && !str_contains($segment, '_')) {
+            return $segment;
+        }
+        // Convert kebab-case or snake_case → camelCase
         $segment = str_replace(['-', '_'], ' ', strtolower($segment));
         return lcfirst(str_replace(' ', '', ucwords($segment)));
     }
