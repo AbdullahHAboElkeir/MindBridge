@@ -9,7 +9,6 @@ class TherapistController extends Controller
         parent::__construct();
         Middleware::requireTherapist();
         $this->therapistModel = $this->model('Therapist');
-        require_once BASE_PATH . '/app/models/Appointment.php';
     }
 
     /** GET /therapist/profile */
@@ -69,6 +68,12 @@ class TherapistController extends Controller
         $this->auditLog('update_availability','therapist_availability','Availability updated');
         Session::flash('success', 'Availability updated successfully.');
         $this->redirect('therapist/availability');
+    }
+
+    /** GET /therapist/schedule — alias for availability() */
+    public function schedule(): void
+    {
+        $this->availability();
     }
 
     /** GET /therapist/patients */

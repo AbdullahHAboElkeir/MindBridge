@@ -115,7 +115,7 @@ require_once BASE_PATH . '/app/views/layouts/sidebar.php';
   <div class="card fade-in-up mt-4">
     <div class="card-header"><i class="bi bi-chat-square-text text-primary me-2"></i>Add a Comment</div>
     <div class="card-body">
-      <form method="POST" action="<?= $baseUrl ?>/forum/comment" class="needs-validation" novalidate>
+      <form method="POST" action="<?= $baseUrl ?>/forum/comment/add" class="needs-validation" novalidate>
         <input type="hidden" name="post_id" value="<?= $post['id'] ?>">
         <div class="mb-3">
           <textarea name="content" class="form-control" rows="4" required

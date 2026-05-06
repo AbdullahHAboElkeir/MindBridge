@@ -10,7 +10,6 @@ class ForumController extends Controller
     {
         parent::__construct();
         Middleware::requireAuth();
-        require_once BASE_PATH . '/app/models/Forum.php';
     }
 
     private function forumModel(): ForumPost
@@ -68,11 +67,25 @@ class ForumController extends Controller
         $postId = $this->forumModel()->create(Session::userId(), $data);
         $this->auditLog('create_post', 'forum_posts', "Created forum post ID: $postId");
         Session::flash('success', 'Post published successfully!');
-        $this->redirect("forum/view/$postId");
+        $this->redirect("forum/show/$postId");
     }
 
-    /** GET /forum/view/{id} */
-    public function view(int $id): void
+    /** Compatibility helper for the legacy /forum/view/{id} route.
+     * If the first argument is numeric, render the post details.
+     * Otherwise, delegate to the base Controller::view() renderer.
+     */
+    public function view(string|int $view, array $data = []): void
+    {
+        if (is_int($view) || ctype_digit((string)$view)) {
+            $this->show((int)$view);
+            return;
+        }
+
+        parent::view($view, $data);
+    }
+
+    /** GET /forum/show/{id} */
+    public function show(int $id): void
     {
         $model    = $this->forumModel();
         $post     = $model->getById($id);
@@ -99,7 +112,7 @@ class ForumController extends Controller
         $isAdmin = Session::role() === 'admin';
         if (!$isAdmin && (int)$post['user_id'] !== Session::userId()) {
             Session::flash('error', 'You can only edit your own posts.');
-            $this->redirect("forum/view/$id");
+            $this->redirect("forum/show/$id");
         }
 
         $categories = ['general','anxiety','depression','stress','relationships','mindfulness','trauma','grief'];
@@ -138,7 +151,7 @@ class ForumController extends Controller
 
         $this->auditLog('edit_post', 'forum_posts', "Edited post ID: $id");
         Session::flash('success', 'Post updated successfully.');
-        $this->redirect("forum/view/$id");
+        $this->redirect("forum/show/$id");
     }
 
     /** POST /forum/delete/{id} */
@@ -162,8 +175,8 @@ class ForumController extends Controller
     // COMMENTS
     // ──────────────────────────────────────────────────────────────
 
-    /** POST /forum/comment */
-    public function comment(): void
+    /** POST /forum/comment or /forum/comment/add */
+    public function comment(string|int|null $action = null): void
     {
         if (!$this->isPost()) { $this->redirect('forum'); }
 
@@ -176,7 +189,7 @@ class ForumController extends Controller
 
         if (empty($data['content'])) {
             Session::flash('error', 'Comment cannot be empty.');
-            $this->redirect("forum/view/$postId");
+            $this->redirect("forum/show/$postId");
         }
 
         // Crisis keyword detection on comment
@@ -184,7 +197,7 @@ class ForumController extends Controller
 
         $this->forumModel()->addComment($postId, Session::userId(), $data);
         Session::flash('success', 'Comment added.');
-        $this->redirect("forum/view/$postId");
+        $this->redirect("forum/show/$postId");
     }
 
     /** POST /forum/deleteComment/{id} */
@@ -202,7 +215,7 @@ class ForumController extends Controller
         } else {
             Session::flash('error', 'Could not remove comment — you may not have permission.');
         }
-        $this->redirect($postId ? "forum/view/$postId" : 'forum');
+        $this->redirect($postId ? "forum/show/$postId" : 'forum');
     }
 
     // ──────────────────────────────────────────────────────────────

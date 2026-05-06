@@ -6,7 +6,7 @@ require_once BASE_PATH . '/app/views/layouts/sidebar.php';
 ?>
 <div class="main-content">
   <div class="mb-3">
-    <a href="<?= $baseUrl ?>/forum/view/<?= $post['id'] ?>" class="btn btn-sm btn-outline-primary">
+    <a href="<?= $baseUrl ?>/forum/show/<?= $post['id'] ?>" class="btn btn-sm btn-outline-primary">
       <i class="bi bi-arrow-left me-1"></i>Back to Post
     </a>
   </div>
@@ -53,7 +53,7 @@ require_once BASE_PATH . '/app/views/layouts/sidebar.php';
           <button type="submit" class="btn btn-primary px-4">
             <i class="bi bi-check-circle me-2"></i>Save Changes
           </button>
-          <a href="<?= $baseUrl ?>/forum/view/<?= $post['id'] ?>" class="btn btn-outline-secondary">
+          <a href="<?= $baseUrl ?>/forum/show/<?= $post['id'] ?>" class="btn btn-outline-secondary">
             Cancel
           </a>
         </div>

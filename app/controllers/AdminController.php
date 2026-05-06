@@ -6,15 +6,72 @@ class AdminController extends Controller
     {
         parent::__construct();
         Middleware::requireAdmin();
-        require_once BASE_PATH . '/app/models/Forum.php';
-        require_once BASE_PATH . '/app/models/Wellness.php';
     }
 
     public function index(): void
     {
-        // Admin dashboard is rendered by DashboardController::index()
-        // which detects the admin role and shows the admin view.
-        $this->redirect('dashboard');
+        // Redirect to admin dashboard
+        $this->redirect('admin/dashboard');
+    }
+
+    /** GET /admin/dashboard — direct admin dashboard URL */
+    public function dashboard(): void
+    {
+        $db = $this->db;
+
+        // Safe defaults
+        $totalUsers = $totalPatients = $totalTherapists = $totalSessions = 0;
+        $pendingReports = $crisisNew = 0;
+        $monthRevenue = 0.0;
+        $recentUsers = $recentCrisis = [];
+        $sessLabels = $sessValues = [];
+
+        try { $totalUsers = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM users")['c'] ?? 0); } catch (Exception $e) {}
+        try { $totalPatients = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM patients")['c'] ?? 0); } catch (Exception $e) {}
+        try { $totalTherapists = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM therapists")['c'] ?? 0); } catch (Exception $e) {}
+        try { $totalSessions = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM appointments WHERE status='completed'")['c'] ?? 0); } catch (Exception $e) {}
+        try { $pendingReports = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM reports WHERE status='pending'")['c'] ?? 0); } catch (Exception $e) {}
+        try { $crisisNew = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM crisis_alerts WHERE status='new'")['c'] ?? 0); } catch (Exception $e) {}
+        try {
+            $monthRevenue = (float)($db->fetchOne(
+                "SELECT COALESCE(SUM(amount),0) AS s FROM payments WHERE status='paid'
+                 AND MONTH(paid_at)=MONTH(NOW()) AND YEAR(paid_at)=YEAR(NOW())"
+            )['s'] ?? 0);
+        } catch (Exception $e) {}
+
+        try {
+            $recentUsers = $db->fetchAll(
+                "SELECT id, first_name, last_name, role, status, created_at FROM users
+                 ORDER BY created_at DESC LIMIT 8"
+            );
+        } catch (Exception $e) {}
+
+        try {
+            $recentCrisis = $db->fetchAll(
+                "SELECT ca.*, u.first_name, u.last_name FROM crisis_alerts ca
+                 JOIN patients p ON p.id = ca.patient_id
+                 JOIN users u ON u.id = p.user_id
+                 WHERE ca.status = 'new'
+                 ORDER BY ca.created_at DESC LIMIT 5"
+            );
+        } catch (Exception $e) {}
+
+        try {
+            $sessChart  = $db->fetchAll(
+                "SELECT DATE_FORMAT(scheduled_at,'%b') AS month, COUNT(*) AS cnt
+                 FROM appointments WHERE scheduled_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                 GROUP BY MONTH(scheduled_at), month ORDER BY scheduled_at ASC"
+            );
+            $sessLabels = array_column($sessChart, 'month');
+            $sessValues = array_column($sessChart, 'cnt');
+        } catch (Exception $e) {}
+
+        $pageTitle = 'Admin Dashboard';
+        $this->view('dashboard.admin', compact(
+            'pageTitle','totalUsers','totalPatients','totalTherapists',
+            'totalSessions','pendingReports','crisisNew','monthRevenue',
+            'recentUsers','recentCrisis','sessLabels','sessValues'
+        ));
     }
 
     /** GET /admin/users */
@@ -82,14 +139,18 @@ class AdminController extends Controller
     /** GET /admin/moderation */
     public function moderation(): void
     {
-        $pending   = (new ForumPost())->getPending();
+        require_once BASE_PATH . '/app/models/Forum.php';
+        $forum     = new ForumPost();
+        $pending   = $forum->getPending();
+        $flagged   = $forum->getFlagged();
         $pageTitle = 'Content Moderation';
-        $this->view('admin.moderation', compact('pageTitle','pending'));
+        $this->view('admin.moderation', compact('pageTitle','pending','flagged'));
     }
 
     /** POST /admin/moderatePost */
     public function moderatePost(): void
     {
+        require_once BASE_PATH . '/app/models/Forum.php';
         $postId = (int)$this->post('post_id');
         $action = $this->post('action', 'publish');
         (new ForumPost())->updateStatus($postId, $action === 'approve' ? 'published' : 'removed');
@@ -101,7 +162,7 @@ class AdminController extends Controller
     /** GET /admin/resources */
     public function resources(): void
     {
-        // Pass adminAll:true so inactive resources are also visible to admin
+        require_once BASE_PATH . '/app/models/Wellness.php';
         $resources = (new WellnessResource())->getAll('', '', true);
         $pageTitle = 'Wellness Resources';
         $this->view('admin.resources', compact('pageTitle','resources'));

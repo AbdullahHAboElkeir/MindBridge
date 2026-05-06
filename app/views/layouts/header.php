@@ -93,6 +93,18 @@ if ($_flashSuccess) {
     <span class="navbar-brand-text">Mind<strong>Bridge</strong></span>
   </a>
 
+  <!-- Navigation Links -->
+  <div class="d-none d-lg-flex ms-4 gap-3">
+    <a href="<?= $baseUrl ?>/dashboard" class="nav-link text-white">Dashboard</a>
+    <a href="<?= $baseUrl ?>/forum" class="nav-link text-white">Community</a>
+    <a href="<?= $baseUrl ?>/appointments" class="nav-link text-white">Appointments</a>
+    <a href="<?= $baseUrl ?>/sessions" class="nav-link text-white">Sessions</a>
+    <a href="<?= $baseUrl ?>/messages" class="nav-link text-white">Messages</a>
+    <?php if ($role === 'admin'): ?>
+      <a href="<?= $baseUrl ?>/admin/dashboard" class="nav-link text-white fw-bold">Admin</a>
+    <?php endif; ?>
+  </div>
+
   <div class="ms-auto d-flex align-items-center gap-3">
     <!-- Search (placeholder) -->
     <div class="d-none d-md-block">
@@ -155,6 +167,7 @@ if ($_flashSuccess) {
       <span class="navbar-brand-text">Mind<strong>Bridge</strong></span>
     </a>
     <div class="d-flex gap-3 align-items-center">
+      <a href="<?= $baseUrl ?>/forum" class="btn btn-outline-light btn-sm">Community</a>
       <a href="<?= $baseUrl ?>/auth/login" class="btn btn-outline-primary btn-sm">Sign In</a>
       <a href="<?= $baseUrl ?>/auth/register" class="btn btn-primary btn-sm">Get Started</a>
     </div>

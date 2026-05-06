@@ -73,4 +73,29 @@ class SessionsController extends Controller
         $pageTitle = 'My Sessions';
         $this->view('sessions.index', compact('pageTitle', 'sessions', 'role'));
     }
+
+    /**
+     * GET /sessions/book — redirect to appointment booking
+     * Keeps /sessions/book as a valid URL that doesn't 404
+     */
+    public function book(): void
+    {
+        Middleware::requirePatient();
+        $this->redirect('appointments/book');
+    }
+
+    /**
+     * GET /sessions/schedule — for therapists, show availability page
+     */
+    public function schedule(): void
+    {
+        $role = Session::role();
+        if ($role === 'therapist') {
+            $this->redirect('therapist/availability');
+        } elseif ($role === 'patient') {
+            $this->redirect('appointments/book');
+        } else {
+            $this->redirect('dashboard');
+        }
+    }
 }

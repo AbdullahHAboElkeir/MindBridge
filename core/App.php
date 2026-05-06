@@ -64,16 +64,24 @@ class App
         $ctrl = new $this->controller();
 
         // 3) Determine method (convert kebab-case to camelCase)
-        $methodName = $this->resolveMethod($url[1] ?? 'index');
+        $methodSegment = $url[1] ?? 'index';
+        $methodName = $this->resolveMethod($methodSegment);
 
         if (method_exists($ctrl, $methodName)) {
             $this->method = $methodName;
             unset($url[1]);
         } elseif ($methodName !== 'index') {
-            // Try treating it as a parameter for the default 'index' method
-            // e.g. /forum/view/5 → ForumController::view(5)
-            $this->show404();
-            return;
+            // Method doesn't exist — try using it as a parameter to index()
+            // e.g. /therapist/123 → TherapistController::index(123)
+            // BUT if index() doesn't accept params either, show 404
+            if (method_exists($ctrl, 'index')) {
+                // Keep $url[1] as a param for index()
+                $this->method = 'index';
+                // Don't unset url[1] — it becomes a param
+            } else {
+                $this->show404();
+                return;
+            }
         }
 
         // 4) Params
@@ -84,8 +92,15 @@ class App
             fn($p) => ctype_digit((string)$p) ? (int)$p : $p,
             $this->params
         );
-        call_user_func_array([$ctrl, $this->method], $castParams);
+
+        // Guard: don't pass string params to methods that require int
+        try {
+            call_user_func_array([$ctrl, $this->method], $castParams);
+        } catch (\TypeError $e) {
+            $this->show404();
+        }
     }
+
 
     /**
      * Convert URL segment to camelCase method name.

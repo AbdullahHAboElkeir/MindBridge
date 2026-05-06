@@ -42,20 +42,116 @@ try {
 if ($pdo) {
     // ── Reset admin password ──────────────────────────────────
     if ($action === 'reset_admin') {
-        $hash = password_hash('Admin123@', PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("UPDATE users SET password=?, status='active' WHERE email='admin@mindbridge.com'");
-        $stmt->execute([$hash]);
+        $adminHash = password_hash('Admin123@', PASSWORD_DEFAULT);
+        $demoHash  = password_hash('password',  PASSWORD_DEFAULT);
+
+        // Upsert admin
+        $stmt = $pdo->prepare("UPDATE users SET password=?, status='active', role='admin' WHERE email='admin@mindbridge.com'");
+        $stmt->execute([$adminHash]);
         if ($stmt->rowCount()) {
-            $results[] = ['ok' => true, 'msg' => '✅ Admin password reset to: <strong>Admin123@</strong>'];
+            $results[] = ['ok' => true, 'msg' => '✅ Admin password set to: <strong>Admin123@</strong>'];
         } else {
-            // Admin doesn't exist yet — insert
-            $hash2 = password_hash('Admin123@', PASSWORD_DEFAULT);
             $pdo->prepare(
-                "INSERT IGNORE INTO users (email,password,name,first_name,last_name,role,status,email_verified,timezone)
-                 VALUES ('admin@mindbridge.com',?,'System Admin','System','Admin','admin','active',1,'UTC')"
-            )->execute([$hash2]);
-            $results[] = ['ok' => true, 'msg' => '✅ Admin account created with password: <strong>Admin123@</strong>'];
+                "INSERT IGNORE INTO users
+                    (email, password, name, first_name, last_name, role, status, email_verified, timezone, created_at)
+                 VALUES ('admin@mindbridge.com', ?, 'System Admin', 'System', 'Admin', 'admin', 'active', 1, 'UTC', NOW())"
+            )->execute([$adminHash]);
+            $results[] = ['ok' => true, 'msg' => '✅ Admin account created — email: admin@mindbridge.com · password: <strong>Admin123@</strong>'];
         }
+
+        // Fix demo therapist passwords
+        $pdo->prepare("UPDATE users SET password=?, status='active' WHERE email='dr.sarah@mindbridge.com'")->execute([$demoHash]);
+        $pdo->prepare("UPDATE users SET password=?, status='active' WHERE email='dr.michael@mindbridge.com'")->execute([$demoHash]);
+        // Fix demo patient passwords
+        $pdo->prepare("UPDATE users SET password=?, status='active' WHERE email='patient1@example.com'")->execute([$demoHash]);
+        $pdo->prepare("UPDATE users SET password=?, status='active' WHERE email='patient2@example.com'")->execute([$demoHash]);
+
+        // Ensure therapist records exist
+        $t1 = $pdo->query("SELECT id FROM users WHERE email='dr.sarah@mindbridge.com'")->fetch();
+        $t2 = $pdo->query("SELECT id FROM users WHERE email='dr.michael@mindbridge.com'")->fetch();
+        if ($t1) {
+            $pdo->prepare("INSERT IGNORE INTO therapists (user_id, license_number, specializations, languages, bio, years_experience, session_rate, is_available)
+                VALUES (?, 'LIC-2024-001', 'Anxiety,Depression,Trauma,CBT', 'English,Arabic',
+                'Dr. Sarah Johnson specializes in CBT and trauma-informed care.', 8, 120.00, 1)")->execute([$t1['id']]);
+        }
+        if ($t2) {
+            $pdo->prepare("INSERT IGNORE INTO therapists (user_id, license_number, specializations, languages, bio, years_experience, session_rate, is_available)
+                VALUES (?, 'LIC-2024-002', 'Stress,Relationships,Mindfulness,Grief', 'English,French',
+                'Dr. Michael Chen integrates mindfulness-based cognitive therapy.', 6, 100.00, 1)")->execute([$t2['id']]);
+        }
+
+        // Ensure therapist availability exists
+        $th1 = $pdo->query("SELECT id FROM therapists WHERE license_number='LIC-2024-001' LIMIT 1")->fetch();
+        $th2 = $pdo->query("SELECT id FROM therapists WHERE license_number='LIC-2024-002' LIMIT 1")->fetch();
+
+        if ($th1) {
+            $pdo->exec("DELETE FROM therapist_availability WHERE therapist_id={$th1['id']}");
+            $days = [1,2,3,4,5,6];
+            foreach ($days as $d) {
+                $s = $d === 6 ? '10:00:00' : '09:00:00';
+                $e = $d === 6 ? '14:00:00' : ($d === 5 ? '15:00:00' : '17:00:00');
+                $pdo->prepare("INSERT INTO therapist_availability (therapist_id,day_of_week,start_time,end_time,is_active) VALUES (?,?,?,?,1)")
+                    ->execute([$th1['id'], $d, $s, $e]);
+            }
+        }
+        if ($th2) {
+            $pdo->exec("DELETE FROM therapist_availability WHERE therapist_id={$th2['id']}");
+            foreach ([1,2,3,4,5] as $d) {
+                $e = $d === 5 ? '16:00:00' : '18:00:00';
+                $pdo->prepare("INSERT INTO therapist_availability (therapist_id,day_of_week,start_time,end_time,is_active) VALUES (?,?,?,?,1)")
+                    ->execute([$th2['id'], $d, '10:00:00', $e]);
+            }
+        }
+
+        // Ensure patient records exist
+        $p1 = $pdo->query("SELECT id FROM users WHERE email='patient1@example.com'")->fetch();
+        $p2 = $pdo->query("SELECT id FROM users WHERE email='patient2@example.com'")->fetch();
+        if ($p1) $pdo->prepare("INSERT IGNORE INTO patients (user_id, preferred_language, onboarding_step) VALUES (?,?,4)")->execute([$p1['id'],'English']);
+        if ($p2) $pdo->prepare("INSERT IGNORE INTO patients (user_id, preferred_language, onboarding_step) VALUES (?,?,2)")->execute([$p2['id'],'English']);
+
+        // Seed wellness resources if empty
+        $rc = $pdo->query("SELECT COUNT(*) AS c FROM wellness_resources")->fetch();
+        if ((int)($rc['c'] ?? 0) === 0) {
+            $adminId = $pdo->query("SELECT id FROM users WHERE email='admin@mindbridge.com'")->fetch()['id'] ?? 1;
+            $pdo->prepare("INSERT INTO wellness_resources (title, description, content, type, category, is_featured, is_active, created_by)
+                VALUES (?,?,?,?,?,?,?,?)")->execute([
+                'Understanding Anxiety: A Beginner\'s Guide',
+                'Learn what anxiety is and evidence-based strategies to manage it.',
+                'Anxiety is one of the most common mental health experiences. Learn deep breathing, grounding, and cognitive reframing techniques.',
+                'article','anxiety',1,1,$adminId]);
+            $pdo->prepare("INSERT INTO wellness_resources (title, description, content, type, category, is_featured, is_active, created_by)
+                VALUES (?,?,?,?,?,?,?,?)")->execute([
+                'Mindfulness Meditation: 5-Minute Daily Practice',
+                'A simple daily mindfulness routine for stress relief.',
+                'Close your eyes, focus on your breath, and let thoughts pass like clouds. Practice this 5-minute exercise daily.',
+                'exercise','mindfulness',1,1,$adminId]);
+            $pdo->prepare("INSERT INTO wellness_resources (title, description, content, type, category, is_featured, is_active, created_by)
+                VALUES (?,?,?,?,?,?,?,?)")->execute([
+                'Stress Management Toolkit',
+                'Tools and techniques for managing stress in everyday life.',
+                'From time management to relaxation techniques, this toolkit helps you build healthy coping mechanisms.',
+                'worksheet','stress',1,1,$adminId]);
+        }
+
+        // Seed forum posts if empty
+        $fc = $pdo->query("SELECT COUNT(*) AS c FROM forum_posts")->fetch();
+        if ((int)($fc['c'] ?? 0) === 0) {
+            $p1uid = $p1['id'] ?? null;
+            if ($p1uid) {
+                $pdo->prepare("INSERT INTO forum_posts (user_id, title, content, category, is_anonymous, status, is_pinned)
+                    VALUES (?,?,?,?,?,?,?)")->execute([$p1uid,
+                    'Welcome to the MindBridge Community Forum 🌱',
+                    'This is a safe space for our wellness journey. Please be kind and supportive. You are not alone!',
+                    'general', 0, 'published', 1]);
+                $pdo->prepare("INSERT INTO forum_posts (user_id, title, content, category, is_anonymous, pseudonym, status)
+                    VALUES (?,?,?,?,?,?,?)")->execute([$p1uid,
+                    'Feeling overwhelmed by anxiety — anyone else?',
+                    'Hey everyone, I\'ve been struggling with anxiety lately. Does anyone have tips for managing it in public spaces?',
+                    'anxiety', 1, 'HopefulHeart', 'published']);
+            }
+        }
+
+        $results[] = ['ok' => true, 'msg' => '✅ All demo passwords set. Availability slots created. Seed data verified.'];
     }
 
     // ── Verify admin can authenticate ─────────────────────────

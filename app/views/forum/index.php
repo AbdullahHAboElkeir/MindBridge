@@ -50,7 +50,7 @@ require_once BASE_PATH . '/app/views/layouts/sidebar.php';
                     <i class="bi bi-pin-fill me-1"></i>Pinned
                   </span>
                 <?php endif; ?>
-                <a href="<?= $baseUrl ?>/forum/view/<?= $post['id'] ?>" class="fw-700 text-decoration-none" style="color:var(--text);font-size:1.05rem;">
+                <a href="<?= $baseUrl ?>/forum/show/<?= $post['id'] ?>" class="fw-700 text-decoration-none" style="color:var(--text);font-size:1.05rem;">
                   <?= htmlspecialchars($post['title']) ?>
                 </a>
               </div>
@@ -73,11 +73,11 @@ require_once BASE_PATH . '/app/views/layouts/sidebar.php';
             </p>
 
             <div class="d-flex align-items-center gap-4">
-              <a href="<?= $baseUrl ?>/forum/view/<?= $post['id'] ?>" class="text-muted small text-decoration-none">
+              <a href="<?= $baseUrl ?>/forum/show/<?= $post['id'] ?>" class="text-muted small text-decoration-none">
                 <i class="bi bi-chat me-1"></i><?= $post['comment_count'] ?> comments
               </a>
               <span class="text-muted small"><i class="bi bi-eye me-1"></i><?= $post['view_count'] ?> views</span>
-              <a href="<?= $baseUrl ?>/forum/view/<?= $post['id'] ?>" class="btn btn-sm btn-outline-primary ms-auto">
+              <a href="<?= $baseUrl ?>/forum/show/<?= $post['id'] ?>" class="btn btn-sm btn-outline-primary ms-auto">
                 Read More <i class="bi bi-arrow-right ms-1"></i>
               </a>
             </div>

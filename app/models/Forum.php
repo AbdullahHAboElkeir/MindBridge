@@ -180,4 +180,20 @@ class ForumPost
              ORDER BY fp.created_at DESC"
         );
     }
+
+    /** Get flagged posts for admin moderation. */
+    public function getFlagged(): array
+    {
+        return $this->db->fetchAll(
+            "SELECT fp.*, u.first_name, u.last_name,
+                    (SELECT COUNT(*) FROM reports r WHERE r.type='forum_post' AND r.target_id=fp.id AND r.status='pending') AS report_count
+             FROM forum_posts fp
+             JOIN users u ON u.id=fp.user_id
+             WHERE fp.status='flagged' OR fp.id IN (
+                 SELECT target_id FROM reports WHERE type='forum_post' AND status='pending'
+             )
+             ORDER BY fp.created_at DESC
+             LIMIT 50"
+        );
+    }
 }

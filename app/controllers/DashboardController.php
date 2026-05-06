@@ -6,6 +6,11 @@
  */
 class DashboardController extends Controller
 {
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
     public function index(): void
     {
         Middleware::requireAuth();
@@ -165,38 +170,52 @@ class DashboardController extends Controller
     {
         $db = $this->db;
 
-        $totalUsers      = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM users")['c'] ?? 0);
-        $totalPatients   = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM patients")['c'] ?? 0);
-        $totalTherapists = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM therapists")['c'] ?? 0);
-        $totalSessions   = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM appointments WHERE status='completed'")['c'] ?? 0);
-        $pendingReports  = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM reports WHERE status='pending'")['c'] ?? 0);
-        $crisisNew       = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM crisis_alerts WHERE status='new'")['c'] ?? 0);
-        $monthRevenue    = (float)($db->fetchOne(
-            "SELECT COALESCE(SUM(amount),0) AS s FROM payments WHERE status='paid'
-             AND MONTH(paid_at)=MONTH(NOW()) AND YEAR(paid_at)=YEAR(NOW())"
-        )['s'] ?? 0);
+        // Safe defaults
+        $totalUsers = $totalPatients = $totalTherapists = $totalSessions = 0;
+        $pendingReports = $crisisNew = 0;
+        $monthRevenue = 0.0;
+        $recentUsers = $recentCrisis = [];
+        $sessLabels = $sessValues = [];
 
-        $recentUsers = $db->fetchAll(
-            "SELECT id, first_name, last_name, role, status, created_at FROM users
-             ORDER BY created_at DESC LIMIT 8"
-        );
+        try { $totalUsers = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM users")['c'] ?? 0); } catch (Exception $e) {}
+        try { $totalPatients = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM patients")['c'] ?? 0); } catch (Exception $e) {}
+        try { $totalTherapists = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM therapists")['c'] ?? 0); } catch (Exception $e) {}
+        try { $totalSessions = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM appointments WHERE status='completed'")['c'] ?? 0); } catch (Exception $e) {}
+        try { $pendingReports = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM reports WHERE status='pending'")['c'] ?? 0); } catch (Exception $e) {}
+        try { $crisisNew = (int)($db->fetchOne("SELECT COUNT(*) AS c FROM crisis_alerts WHERE status='new'")['c'] ?? 0); } catch (Exception $e) {}
+        try {
+            $monthRevenue = (float)($db->fetchOne(
+                "SELECT COALESCE(SUM(amount),0) AS s FROM payments WHERE status='paid'
+                 AND MONTH(paid_at)=MONTH(NOW()) AND YEAR(paid_at)=YEAR(NOW())"
+            )['s'] ?? 0);
+        } catch (Exception $e) {}
 
-        $recentCrisis = $db->fetchAll(
-            "SELECT ca.*, u.first_name, u.last_name FROM crisis_alerts ca
-             JOIN patients p ON p.id = ca.patient_id
-             JOIN users u ON u.id = p.user_id
-             WHERE ca.status = 'new'
-             ORDER BY ca.created_at DESC LIMIT 5"
-        );
+        try {
+            $recentUsers = $db->fetchAll(
+                "SELECT id, first_name, last_name, role, status, created_at FROM users
+                 ORDER BY created_at DESC LIMIT 8"
+            );
+        } catch (Exception $e) {}
 
-        // Sessions per month (last 6 months) for chart
-        $sessChart = $db->fetchAll(
-            "SELECT DATE_FORMAT(scheduled_at,'%b') AS month, COUNT(*) AS cnt
-             FROM appointments WHERE scheduled_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-             GROUP BY MONTH(scheduled_at), month ORDER BY scheduled_at ASC"
-        );
-        $sessLabels = array_column($sessChart, 'month');
-        $sessValues = array_column($sessChart, 'cnt');
+        try {
+            $recentCrisis = $db->fetchAll(
+                "SELECT ca.*, u.first_name, u.last_name FROM crisis_alerts ca
+                 JOIN patients p ON p.id = ca.patient_id
+                 JOIN users u ON u.id = p.user_id
+                 WHERE ca.status = 'new'
+                 ORDER BY ca.created_at DESC LIMIT 5"
+            );
+        } catch (Exception $e) {}
+
+        try {
+            $sessChart  = $db->fetchAll(
+                "SELECT DATE_FORMAT(scheduled_at,'%b') AS month, COUNT(*) AS cnt
+                 FROM appointments WHERE scheduled_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                 GROUP BY MONTH(scheduled_at), month ORDER BY scheduled_at ASC"
+            );
+            $sessLabels = array_column($sessChart, 'month');
+            $sessValues = array_column($sessChart, 'cnt');
+        } catch (Exception $e) {}
 
         $pageTitle = 'Admin Dashboard';
         $this->view('dashboard.admin', compact(
@@ -206,3 +225,4 @@ class DashboardController extends Controller
         ));
     }
 }
+

@@ -30,7 +30,10 @@ class AuthController extends Controller
     /** POST /auth/login */
     public function doLogin(): void
     {
-        Middleware::guestOnly();
+        // If already logged in, redirect to dashboard (don't loop back to doLogin)
+        if (Session::isLoggedIn()) {
+            $this->redirect('dashboard');
+        }
 
         if (!$this->isPost()) {
             $this->redirect('auth/login');
@@ -47,7 +50,7 @@ class AuthController extends Controller
             $user = $this->userModel->authenticate($email, $password);
 
             if ($user) {
-                // Regenerate session id to prevent fixation and persist auth state
+                // Regenerate session id to prevent fixation
                 Session::regenerate();
 
                 // Set session
@@ -61,7 +64,14 @@ class AuthController extends Controller
 
                 $this->auditLog('login', 'users', 'Login successful');
                 Session::flash('success', 'Welcome back, ' . ($user['first_name'] ?? $user['email']) . '!');
-                $this->redirect('dashboard');
+
+                // Role-based redirect
+                $role = $user['role'];
+                if ($role === 'admin') {
+                    $this->redirect('admin/dashboard');  // Admin dashboard
+                } else {
+                    $this->redirect('dashboard');
+                }
             } else {
                 $errors[] = 'Invalid email or password. Please try again.';
             }
@@ -147,7 +157,7 @@ class AuthController extends Controller
             $errors[] = 'Password must be at least 8 characters.';
         if ($d['password'] !== $d['password_confirm'])
             $errors[] = 'Passwords do not match.';
-        if (!in_array($d['role'], ['patient', 'therapist']))
+        if (!in_array($d['role'], ['patient', 'therapist', 'admin'], true))
             $errors[] = 'Invalid role selected.';
         if ($this->userModel->emailExists($d['email']))
             $errors[] = 'This email is already registered.';
