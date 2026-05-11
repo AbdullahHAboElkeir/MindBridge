@@ -1,0 +1,329 @@
+@startuml MindBridge_Full_ERD
+!theme plain
+skinparam linetype ortho
+skinparam shadowing false
+
+entity "users" {
+  * id : int <<PK>>
+  --
+  email : varchar(191) <<UQ>>
+  password : varchar(255)
+  first_name : varchar(100)
+  last_name : varchar(100)
+  name : varchar(201)
+  role : enum(patient, therapist, admin)
+  status : enum(active, inactive, suspended, pending)
+  avatar : varchar(255)
+  phone : varchar(30)
+  date_of_birth : date
+  gender : enum
+  timezone : varchar(64)
+  last_login : datetime
+  email_verified : tinyint(1)
+  created_at : datetime
+  updated_at : datetime
+}
+
+entity "patients" {
+  * id : int <<PK>>
+  --
+  user_id : int <<FK>> <<UQ>>
+  insurance_provider : varchar(150)
+  insurance_number : varchar(100)
+  insurance_verified : tinyint(1)
+  emergency_contact : varchar(200)
+  emergency_phone : varchar(30)
+  address : varchar(300)
+  city : varchar(100)
+  country : varchar(100)
+  preferred_language : varchar(50)
+  onboarding_step : tinyint
+  assigned_therapist : int <<FK>>
+  notes : text
+}
+
+entity "therapists" {
+  * id : int <<PK>>
+  --
+  user_id : int <<FK>> <<UQ>>
+  license_number : varchar(100)
+  license_verified : tinyint(1)
+  specializations : varchar(500)
+  languages : varchar(300)
+  bio : text
+  years_experience : tinyint
+  session_rate : decimal(10,2)
+  accepts_insurance : tinyint(1)
+  max_patients : tinyint
+  current_patients : tinyint
+  rating : decimal(3,2)
+  total_reviews : int
+  is_available : tinyint(1)
+}
+
+entity "therapist_availability" {
+  * id : int <<PK>>
+  --
+  therapist_id : int <<FK>>
+  day_of_week : tinyint
+  start_time : time
+  end_time : time
+  is_active : tinyint(1)
+}
+
+entity "intake_forms" {
+  * id : int <<PK>>
+  --
+  patient_id : int <<FK>> <<UQ>>
+  primary_concerns : text
+  mental_health_history : text
+  current_medications : text
+  previous_therapy : tinyint(1)
+  therapy_type_pref : varchar(200)
+  therapist_gender_pref : enum
+  preferred_language : varchar(50)
+  session_format_pref : enum
+  urgency_level : enum
+  goals : text
+  status : enum(draft, submitted, reviewed)
+}
+
+entity "consent_forms" {
+  * id : int <<PK>>
+  --
+  patient_id : int <<FK>>
+  form_type : enum
+  content : text
+  signature : varchar(500)
+  is_signed : tinyint(1)
+  signed_at : datetime
+}
+
+entity "appointments" {
+  * id : int <<PK>>
+  --
+  patient_id : int <<FK>>
+  therapist_id : int <<FK>>
+  scheduled_at : datetime
+  duration_minutes : smallint
+  type : enum
+  status : enum
+  cancelled_by : int <<FK>>
+}
+
+entity "sessions" {
+  * id : int <<PK>>
+  --
+  appointment_id : int <<FK>> <<UQ>>
+  therapist_notes : text
+  patient_notes : text
+  mood_before : tinyint
+  mood_after : tinyint
+  outcome : enum
+  homework : text
+  started_at : datetime
+  ended_at : datetime
+}
+
+entity "therapist_matches" {
+  * id : int <<PK>>
+  --
+  patient_id : int <<FK>>
+  therapist_id : int <<FK>>
+  match_score : decimal
+  status : enum
+}
+
+entity "waitlists" {
+  * id : int <<PK>>
+  --
+  patient_id : int <<FK>>
+  therapist_id : int <<FK>>
+  position : int
+  status : enum
+}
+
+entity "payments" {
+  * id : int <<PK>>
+  --
+  appointment_id : int <<FK>>
+  patient_id : int <<FK>>
+  amount : decimal
+  currency : varchar
+  method : enum
+  status : enum
+}
+
+entity "messages" {
+  * id : int <<PK>>
+  --
+  sender_id : int <<FK>>
+  receiver_id : int <<FK>>
+  parent_id : int <<FK>>
+  content : text
+  is_read : tinyint(1)
+}
+
+entity "notifications" {
+  * id : int <<PK>>
+  --
+  user_id : int <<FK>>
+  type : varchar
+  title : varchar
+  message : text
+  is_read : tinyint(1)
+}
+
+entity "journals" {
+  * id : int <<PK>>
+  --
+  patient_id : int <<FK>>
+  title : varchar
+  content : text
+  mood_tag : varchar
+  is_private : tinyint(1)
+}
+
+entity "mood_entries" {
+  * id : int <<PK>>
+  --
+  patient_id : int <<FK>>
+  mood_level : tinyint
+  notes : text
+  entry_date : date
+}
+
+entity "wellness_goals" {
+  * id : int <<PK>>
+  --
+  patient_id : int <<FK>>
+  title : varchar
+  category : enum
+  progress : tinyint
+  status : enum
+}
+
+entity "wellness_resources" {
+  * id : int <<PK>>
+  --
+  title : varchar
+  type : enum
+  category : enum
+  url : varchar
+  created_by : int <<FK>>
+}
+
+entity "forum_posts" {
+  * id : int <<PK>>
+  --
+  user_id : int <<FK>>
+  title : varchar
+  content : text
+  is_anonymous : tinyint(1)
+  status : enum
+}
+
+entity "forum_comments" {
+  * id : int <<PK>>
+  --
+  post_id : int <<FK>>
+  user_id : int <<FK>>
+  content : text
+}
+
+entity "feedback" {
+  * id : int <<PK>>
+  --
+  patient_id : int <<FK>>
+  therapist_id : int <<FK>>
+  appointment_id : int <<FK>> <<UQ>>
+  rating : tinyint
+  comment : text
+}
+
+entity "reports" {
+  * id : int <<PK>>
+  --
+  reporter_id : int <<FK>>
+  type : enum
+  target_id : int
+  reason : enum
+  status : enum
+  reviewed_by : int <<FK>>
+}
+
+entity "crisis_alerts" {
+  * id : int <<PK>>
+  --
+  patient_id : int <<FK>>
+  trigger_text : text
+  severity : enum
+  status : enum
+  responder_id : int <<FK>>
+}
+
+entity "audit_logs" {
+  * id : int <<PK>>
+  --
+  user_id : int <<FK>>
+  action : varchar
+  entity : varchar
+  ip_address : varchar
+}
+
+entity "disputes" {
+  * id : int <<PK>>
+  --
+  appointment_id : int <<FK>>
+  filed_by : int <<FK>>
+  against : int <<FK>>
+  status : enum
+}
+
+' --- Relationships ---
+
+users ||--|| patients : "mapped to"
+users ||--|| therapists : "mapped to"
+patients }o--o| users : "assigned_therapist"
+
+therapists ||--o{ therapist_availability : "sets"
+patients ||--|| intake_forms : "fills"
+patients ||--o{ consent_forms : "signs"
+
+patients ||--o{ appointments : "books"
+therapists ||--o{ appointments : "attends"
+appointments ||--|| sessions : "results in"
+appointments ||--o{ payments : "triggers"
+patients ||--o{ payments : "pays"
+
+patients ||--o{ therapist_matches : "matched with"
+therapists ||--o{ therapist_matches : "suggested to"
+
+patients ||--o{ waitlists : "joins"
+therapists ||--o{ waitlists : "has"
+
+users ||--o{ messages : "sends/receives"
+messages ||--o{ messages : "replies"
+users ||--o{ notifications : "receives"
+
+patients ||--o{ journals : "writes"
+patients ||--o{ mood_entries : "tracks"
+patients ||--o{ wellness_goals : "sets"
+
+users ||--o{ forum_posts : "creates"
+forum_posts ||--o{ forum_comments : "has"
+users ||--o{ forum_comments : "writes"
+
+patients ||--o{ feedback : "gives"
+therapists ||--o{ feedback : "receives"
+appointments ||--o| feedback : "linked to"
+
+users ||--o{ reports : "files/reviews"
+users ||--o{ audit_logs : "generates"
+patients ||--o{ crisis_alerts : "triggers"
+users ||--o{ crisis_alerts : "responds to"
+
+appointments ||--o| disputes : "disputed"
+users ||--o{ disputes : "involved in"
+
+@enduml

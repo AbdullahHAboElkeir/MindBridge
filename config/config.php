@@ -6,7 +6,7 @@ define('APP_VERSION', '1.0.0');
 
 // BASE_URL: adjust if your folder differs.
 // Project lives at htdocs/MindBridge/MindBridge → URL is /MindBridge/MindBridge
-define('BASE_URL',    'http://localhost/MindBridge/MindBridge');
+define('BASE_URL',    'http://localhost/MindBridge-main/');
 define('BASE_PATH',   dirname(__DIR__));          // = htdocs/MindBridge/MindBridge
 
 // ─── Database ──────────────────────────────────────────────────

@@ -1,9 +1,10 @@
 <?php
 
-/**
- * Base Controller
- * All controllers extend this class.
- */
+// ==========================
+// MVC Pattern - Controller Layer
+// Handles HTTP requests, prepares data, and invokes views.
+// Base controller also provides shared utilities for all controllers.
+// ==========================
 abstract class Controller
 {
     protected Database $db;
@@ -13,9 +14,11 @@ abstract class Controller
         $this->db = Database::getInstance();
     }
 
-    /**
-     * Load a model by class name.
-     */
+    // ==========================
+    // Factory Method Pattern
+    // Creates and returns model instances by name.
+    // This isolates model instantiation from controller logic.
+    // ==========================
     protected function model(string $model): object
     {
         $file = BASE_PATH . '/app/models/' . $model . '.php';

@@ -1,9 +1,11 @@
 <?php
 
-/**
- * MindBridge — Front Controller
- * Entry point for all requests routed via .htaccess
- */
+// ==========================
+// Front Controller Pattern
+// This file is the single entry point for every request.
+// It bootstraps configuration, starts sessions, and forwards
+// request handling to the App router.
+// ==========================
 
 // ─── Bootstrap ─────────────────────────────────────────────────────────────
 require_once __DIR__ . '/config/config.php';

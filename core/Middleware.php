@@ -1,8 +1,10 @@
 <?php
 
-/**
- * Middleware — RBAC route protection
- */
+// ==========================
+// Middleware Pattern
+// Encapsulates authentication and role-based access checks.
+// Controllers call these checks before rendering protected pages.
+// ==========================
 class Middleware
 {
     /**

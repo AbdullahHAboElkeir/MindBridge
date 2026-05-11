@@ -1,8 +1,10 @@
 <?php
 
-/**
- * Database — Singleton PDO wrapper
- */
+// ==========================
+// Singleton Design Pattern
+// Ensures only one PDO connection instance exists across requests.
+// Controllers and models share this centralized database object.
+// ==========================
 class Database
 {
     private static ?Database $instance = null;

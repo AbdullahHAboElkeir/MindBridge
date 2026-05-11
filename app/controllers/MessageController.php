@@ -64,10 +64,28 @@ class MessageController extends Controller
         // Notify receiver — use parameterized query, no string concatenation
         $senderName = Session::get('first_name', '') . ' ' . Session::get('last_name', '');
         $msgLink    = '/messages?with=' . Session::userId();
+
+        // Build an immutable notification payload.
+        // The notification data should not change after it is created.
+        $notification = new NotificationMessage(
+            $receiverId,
+            'new_message',
+            'New Message',
+            'You have a new message from ' . $senderName . '.',
+            $msgLink
+        );
+
         $this->db->insert(
             "INSERT INTO notifications (user_id, type, title, message, link, created_at)
-             VALUES (?, 'new_message', 'New Message', ?, ?, NOW())",
-            [$receiverId, 'You have a new message from ' . $senderName . '.', $msgLink]);
+             VALUES (?, ?, ?, ?, ?, NOW())",
+            [
+                $notification->getUserId(),
+                $notification->getType(),
+                $notification->getTitle(),
+                $notification->getMessage(),
+                $notification->getLink(),
+            ]
+        );
 
         if ($this->isAjax()) {
             $this->json(['success' => true, 'message' => 'Message sent.']);

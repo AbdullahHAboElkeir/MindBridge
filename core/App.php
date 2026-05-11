@@ -7,6 +7,11 @@
  * Route alias map handles mismatches between URL plurals
  * and singular controller file names.
  */
+// ==========================
+// Router Pattern
+// Resolves URL segments into controller classes and action methods.
+// Works with the front controller to dispatch requests dynamically.
+// ==========================
 class App
 {
     protected string $controller = 'HomeController';
@@ -61,6 +66,7 @@ class App
         // 2) Load all dependencies
         $this->loadDependencies($this->controller);
 
+        // Create controller instance after dependencies are available
         $ctrl = new $this->controller();
 
         // 3) Determine method (convert kebab-case to camelCase)
