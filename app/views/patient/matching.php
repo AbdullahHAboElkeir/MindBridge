@@ -94,17 +94,27 @@ $dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturd
             </div>
 
             <?php if ($match['status'] !== 'accepted'): ?>
-              <form method="POST" action="<?= $baseUrl ?>/patient/selectTherapist">
-                <input type="hidden" name="therapist_id" value="<?= $match['therapist_id'] ?>">
-                <button type="submit" class="btn btn-primary w-100"
-                        onclick="return confirm('Select Dr. <?= htmlspecialchars($match['first_name'].' '.$match['last_name']) ?> as your therapist?')">
-                  <i class="bi bi-person-check me-2"></i>Choose This Therapist
-                </button>
-              </form>
+              <div class="d-flex gap-2">
+                <a href="<?= $baseUrl ?>/patient/therapist/<?= $match['therapist_id'] ?>" class="btn btn-outline-secondary flex-grow-1">
+                  <i class="bi bi-chat-square-text me-2"></i>View Reviews
+                </a>
+                <form method="POST" action="<?= $baseUrl ?>/patient/selectTherapist" class="flex-grow-1">
+                  <input type="hidden" name="therapist_id" value="<?= $match['therapist_id'] ?>">
+                  <button type="submit" class="btn btn-primary w-100"
+                          onclick="return confirm('Select Dr. <?= htmlspecialchars($match['first_name'].' '.$match['last_name']) ?> as your therapist?')">
+                    <i class="bi bi-person-check me-2"></i>Choose Therapist
+                  </button>
+                </form>
+              </div>
             <?php else: ?>
-              <a href="<?= $baseUrl ?>/appointments/book" class="btn btn-secondary w-100">
-                <i class="bi bi-calendar-plus me-2"></i>Book First Session
-              </a>
+              <div class="d-flex gap-2">
+                <a href="<?= $baseUrl ?>/patient/therapist/<?= $match['therapist_id'] ?>" class="btn btn-outline-secondary w-100">
+                  <i class="bi bi-chat-square-text me-2"></i>View Reviews
+                </a>
+                <a href="<?= $baseUrl ?>/appointments/book" class="btn btn-secondary w-100">
+                  <i class="bi bi-calendar-plus me-2"></i>Book Session
+                </a>
+              </div>
             <?php endif; ?>
           </div>
         </div>

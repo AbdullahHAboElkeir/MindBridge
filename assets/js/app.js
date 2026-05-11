@@ -4,7 +4,7 @@
  */
 
 const MB = {
-  baseUrl: document.querySelector('meta[name="base-url"]')?.content || '',
+  baseUrl: document.querySelector('meta[name="base-url"]')?.content || window.BASE_URL || '',
 
   /* ── Init ──────────────────────────────────────────────── */
   init() {

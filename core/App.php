@@ -41,8 +41,9 @@ class App
         'auth'          => 'Auth',
         'login'         => 'Auth',
         'logout'        => 'Auth',
-        'register'      => 'Auth',
+        'register'       => 'Auth',
         'home'          => 'Home',
+        'search'        => 'Home',  // Search handled by HomeController
     ];
 
     public function __construct()
@@ -71,6 +72,10 @@ class App
 
         // 3) Determine method (convert kebab-case to camelCase)
         $methodSegment = $url[1] ?? 'index';
+        // Special case: if original segment was 'search', use 'search' method
+        if ($segment === 'search' && empty($url[1])) {
+            $methodSegment = 'search';
+        }
         $methodName = $this->resolveMethod($methodSegment);
 
         if (method_exists($ctrl, $methodName)) {

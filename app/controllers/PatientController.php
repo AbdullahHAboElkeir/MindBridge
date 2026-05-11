@@ -208,4 +208,19 @@ class PatientController extends Controller
         Session::flash('success', 'Great! You are now matched with Dr. ' . $therapist['first_name'] . '. Book your first session!');
         $this->redirect('appointments/book');
     }
+
+    /** GET /patient/therapist/{therapistId} */
+    public function therapist(int $therapistId): void
+    {
+        $therapistModel = $this->model('Therapist');
+        $therapist = $therapistModel->getById($therapistId);
+        if (!$therapist) {
+            Session::flash('error', 'Therapist not found.');
+            $this->redirect('patient/matching');
+        }
+
+        $reviews = $therapistModel->getPublicReviews($therapistId);
+        $pageTitle = 'Therapist Reviews';
+        $this->view('patient.therapist', compact('pageTitle','therapist','reviews'));
+    }
 }

@@ -71,16 +71,33 @@ class Appointment
             [$therapistId]);
     }
 
-    /** Check for double-booking conflict */
+    /** Check for double-booking conflict and availability */
     public function hasConflict(int $therapistId, string $datetime, int $duration, int $excludeId = 0): bool
     {
+        // First, check for existing appointment conflicts
         $end = date('Y-m-d H:i:s', strtotime($datetime) + $duration * 60);
         $row = $this->db->fetchOne(
             "SELECT id FROM appointments
              WHERE therapist_id = ? AND id != ? AND status NOT IN ('cancelled','no_show')
                AND scheduled_at < ? AND DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) > ?",
             [$therapistId, $excludeId, $end, $datetime]);
-        return !empty($row);
+        if (!empty($row)) {
+            return true;
+        }
+
+        // Second, check if the time falls within therapist's availability
+        $dow = (int)date('w', strtotime($datetime));
+        $date = date('Y-m-d', strtotime($datetime));
+        $time = date('H:i:s', strtotime($datetime));
+        $endTime = date('H:i:s', strtotime($datetime) + $duration * 60);
+
+        $avail = $this->db->fetchOne(
+            "SELECT id FROM therapist_availability
+             WHERE therapist_id = ? AND day_of_week = ? AND is_active = 1
+               AND start_time <= ? AND end_time >= ?",
+            [$therapistId, $dow, $time, $endTime]);
+
+        return empty($avail);
     }
 
     public function book(int $patientId, int $therapistId, string $datetime, int $duration, string $type, string $notes = ''): int

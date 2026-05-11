@@ -85,6 +85,100 @@ class TherapistController extends Controller
         $this->view('therapist.patients', compact('pageTitle','therapist','patients'));
     }
 
+    /** GET /therapist/patient/{id} */
+    public function patient(int $patientId): void
+    {
+        $therapist = $this->therapistModel->getByUserId(Session::userId());
+
+        // Verify access
+        $patient = $this->db->fetchOne(
+            "SELECT p.*, u.first_name, u.last_name, u.email, u.phone, u.date_of_birth
+             FROM patients p JOIN users u ON u.id = p.user_id
+             WHERE p.id = ? AND p.assigned_therapist = ?",
+            [$patientId, Session::userId()]
+        );
+
+        if (!$patient) {
+            Session::flash('error', 'Patient not found or access denied.');
+            $this->redirect('therapist/patients');
+        }
+
+        // Load required models
+        require_once BASE_PATH . '/app/models/Wellness.php';
+        require_once BASE_PATH . '/app/models/SessionRecord.php';
+
+        // Get patient data
+        $sessions = (new SessionRecord())->getForTherapist($therapist['id']);
+        $patientSessions = array_filter($sessions, fn($s) => $s['patient_id'] == $patientId);
+
+        $moodModel = new MoodEntry();
+        $moodData = $moodModel->getLast30Days($patientId);
+        $avgMood7 = $moodModel->getAverage($patientId, 7);
+        $avgMood30 = $moodModel->getAverage($patientId, 30);
+
+        $goals = (new WellnessGoal())->getAll($patientId);
+
+        $pageTitle = 'Patient Details: ' . $patient['first_name'] . ' ' . $patient['last_name'];
+        $this->view('therapist.patient', compact('pageTitle','therapist','patient','patientSessions','moodData','avgMood7','avgMood30','goals'));
+    }
+
+    /** GET /therapist/generateReport/{patientId} */
+    public function generateReport(int $patientId): void
+    {
+        $therapist = $this->therapistModel->getByUserId(Session::userId());
+
+        // Verify access
+        $patient = $this->db->fetchOne(
+            "SELECT p.id FROM patients p WHERE p.id = ? AND p.assigned_therapist = ?",
+            [$patientId, Session::userId()]
+        );
+
+        if (!$patient) {
+            Session::flash('error', 'Patient not found or access denied.');
+            $this->redirect('therapist/patients');
+        }
+
+        $pageTitle = 'Generate Patient Report';
+        $this->view('therapist.generate_report', compact('pageTitle','therapist','patientId'));
+    }
+
+    /** POST /therapist/createReport */
+    public function createReport(): void
+    {
+        $patientId = (int)$this->post('patient_id');
+        $therapist = $this->therapistModel->getByUserId(Session::userId());
+
+        // Verify access
+        $patient = $this->db->fetchOne(
+            "SELECT p.id FROM patients p WHERE p.id = ? AND p.assigned_therapist = ?",
+            [$patientId, Session::userId()]
+        );
+
+        if (!$patient) {
+            Session::flash('error', 'Patient not found or access denied.');
+            $this->redirect('therapist/patients');
+        }
+
+        $options = [
+            'start_date' => $this->post('start_date') ?: date('Y-m-d', strtotime('-6 months')),
+            'end_date' => $this->post('end_date') ?: date('Y-m-d'),
+            'include_sessions' => $this->post('include_sessions') ? true : false,
+            'include_mood' => $this->post('include_mood') ? true : false,
+            'include_goals' => $this->post('include_goals') ? true : false,
+            'summary' => $this->post('summary', ''),
+        ];
+
+        try {
+            require_once BASE_PATH . '/core/PatientReportPDF.php';
+            $pdfGenerator = new PatientReportPDF();
+            $pdfGenerator->generateReport($patientId, $therapist['id'], $options);
+            // The generateReport method handles the PDF output and download
+        } catch (Exception $e) {
+            Session::flash('error', 'Error generating report: ' . $e->getMessage());
+            $this->redirect("therapist/generateReport/$patientId");
+        }
+    }
+
     /** GET /therapist/sessionNotes/{apptId} */
     public function sessionNotes(int $apptId): void
     {

@@ -70,10 +70,12 @@ require_once BASE_PATH . '/app/views/layouts/sidebar.php';
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-3">
                   <div class="avatar" style="width:40px;height:40px;">
-                    <?= strtoupper(substr($r['first_name'], 0, 1)) ?>
+                    <?= strtoupper(substr($r['first_name'] ?? 'A', 0, 1)) ?>
                   </div>
                   <div>
-                    <div class="fw-600"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></div>
+                    <div class="fw-600">
+                      <?= $r['is_public'] ? htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) : 'Anonymous Patient' ?>
+                    </div>
                     <div class="text-muted small">
                       Session: <?= date('M j, Y', strtotime($r['scheduled_at'])) ?>
                     </div>

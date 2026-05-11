@@ -45,6 +45,7 @@ if ($_flashSuccess) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="base-url" content="<?= htmlspecialchars($baseUrl) ?>">
   <meta name="description" content="MindBridge — A holistic mental health and wellness portal connecting patients with licensed therapists.">
   <meta name="theme-color" content="#4A90E2">
   <title><?= htmlspecialchars($pageTitle) ?> — MindBridge</title>
@@ -106,15 +107,20 @@ if ($_flashSuccess) {
   </div>
 
   <div class="ms-auto d-flex align-items-center gap-3">
-    <!-- Search (placeholder) -->
+    <!-- Search (functional) -->
     <div class="d-none d-md-block">
-      <div class="input-group input-group-sm" style="width:220px;">
-        <span class="input-group-text" style="background:var(--bg);border-color:var(--border);">
-          <i class="bi bi-search text-muted"></i>
-        </span>
-        <input type="text" class="form-control" style="background:var(--bg);border-color:var(--border);"
-               placeholder="Search…" aria-label="Search">
-      </div>
+      <form action="<?= $baseUrl ?>/search" method="GET" class="d-inline">
+        <div class="input-group input-group-sm" style="width:220px;">
+          <span class="input-group-text" style="background:var(--bg);border-color:var(--border);">
+            <i class="bi bi-search text-muted"></i>
+          </span>
+          <input type="text" name="q" class="form-control" style="background:var(--bg);border-color:var(--border);"
+                 placeholder="Search…" aria-label="Search">
+          <button type="submit" class="btn btn-outline-secondary btn-sm" style="border-color:var(--border);">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </form>
     </div>
 
     <!-- Notifications bell -->

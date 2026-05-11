@@ -526,4 +526,45 @@ CREATE TABLE `disputes` (
     FOREIGN KEY (`resolved_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================================
+-- TABLE: mood_alerts (for therapist notifications)
+-- ============================================================
+CREATE TABLE `mood_alerts` (
+  `id`             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `patient_id`     INT UNSIGNED NOT NULL,
+  `therapist_id`   INT UNSIGNED NOT NULL,
+  `mood_level`     TINYINT UNSIGNED NOT NULL,
+  `alert_type`     ENUM('therapist_alert','system_alert') NOT NULL DEFAULT 'therapist_alert',
+  `message`        TEXT NOT NULL,
+  `status`         ENUM('new','acknowledged','resolved') NOT NULL DEFAULT 'new',
+  `acknowledged_at`DATETIME DEFAULT NULL,
+  `created_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT `fk_mood_alert_patient`
+    FOREIGN KEY (`patient_id`) REFERENCES `patients`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_mood_alert_therapist`
+    FOREIGN KEY (`therapist_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  INDEX `idx_mood_alert_status` (`status`),
+  INDEX `idx_mood_alert_therapist` (`therapist_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- TABLE: mood_recommendations (personalized suggestions)
+-- ============================================================
+CREATE TABLE `mood_recommendations` (
+  `id`                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `patient_id`           INT UNSIGNED NOT NULL,
+  `recommendation_type`  VARCHAR(50) NOT NULL,
+  `title`                VARCHAR(200) NOT NULL,
+  `message`              TEXT NOT NULL,
+  `priority`             ENUM('low','medium','high') NOT NULL DEFAULT 'medium',
+  `status`               ENUM('active','dismissed','completed') NOT NULL DEFAULT 'active',
+  `dismissed_at`         DATETIME DEFAULT NULL,
+  `completed_at`         DATETIME DEFAULT NULL,
+  `created_at`           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT `fk_mood_rec_patient`
+    FOREIGN KEY (`patient_id`) REFERENCES `patients`(`id`) ON DELETE CASCADE,
+  INDEX `idx_mood_rec_status` (`status`),
+  INDEX `idx_mood_rec_priority` (`priority`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 1;

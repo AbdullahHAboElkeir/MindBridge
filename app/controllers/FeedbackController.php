@@ -34,10 +34,11 @@ class FeedbackController extends Controller
         Middleware::requirePatient();
         if (!$this->isPost()) { $this->redirect('appointments'); }
 
-        $apptId      = (int)$this->post('appointment_id');
-        $therapistId = (int)$this->post('therapist_id');
-        $rating      = max(1, min(5, (int)$this->post('rating', 5)));
-        $comment     = $this->post('review', '');   // form field is "review"
+        $apptId       = (int)$this->post('appointment_id');
+        $therapistId  = (int)$this->post('therapist_id');
+        $rating       = max(1, min(5, (int)$this->post('rating', 5)));
+        $comment      = $this->post('review', '');   // form field is "review"
+        $isAnonymous  = $this->post('is_anonymous') ? 0 : 1;
 
         $patient = $this->db->fetchOne("SELECT id FROM patients WHERE user_id=?", [Session::userId()]);
         if (!$patient) {
@@ -54,8 +55,20 @@ class FeedbackController extends Controller
 
         $this->db->insert(
             "INSERT INTO feedback (appointment_id, therapist_id, patient_id, rating, comment, is_public, created_at)
-             VALUES (?, ?, ?, ?, ?, 1, NOW())",
-            [$apptId, $therapistId, $patient['id'], $rating, $comment]);
+             VALUES (?, ?, ?, ?, ?, ?, NOW())",
+            [$apptId, $therapistId, $patient['id'], $rating, $comment, $isAnonymous]);
+
+        // Notify therapist that new feedback has been submitted
+        $this->db->insert(
+            "INSERT INTO notifications (user_id, type, title, message, link, created_at)
+             VALUES (?, 'feedback_received', ?, ?, ?, NOW())",
+            [
+                (int)$this->db->fetchOne("SELECT user_id FROM therapists WHERE id = ?", [$therapistId])['user_id'],
+                'New patient feedback received',
+                'A patient submitted a new rating and review for you.',
+                '/feedback'
+            ]
+        );
 
         // Update therapist aggregate rating
         $this->db->execute(

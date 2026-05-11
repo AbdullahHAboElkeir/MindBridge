@@ -43,11 +43,11 @@ require_once BASE_PATH . '/app/views/layouts/sidebar.php';
               </div>
 
               <div class="d-flex gap-2">
-                <a href="<?= $baseUrl ?>/messages?with=<?= $p['user_id'] ?>" class="btn btn-sm btn-primary flex-fill">
-                  <i class="bi bi-chat me-1"></i>Message
+                <a href="<?= $baseUrl ?>/therapist/patient/<?= $p['id'] ?>" class="btn btn-sm btn-primary flex-fill">
+                  <i class="bi bi-person me-1"></i>View Details
                 </a>
-                <a href="<?= $baseUrl ?>/appointments?patient=<?= $p['id'] ?>" class="btn btn-sm btn-outline-primary flex-fill">
-                  <i class="bi bi-calendar me-1"></i>Sessions
+                <a href="<?= $baseUrl ?>/therapist/generateReport/<?= $p['id'] ?>" class="btn btn-sm btn-outline-primary flex-fill">
+                  <i class="bi bi-file-earmark-pdf me-1"></i>Report
                 </a>
               </div>
             </div>

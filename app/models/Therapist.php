@@ -116,6 +116,19 @@ class Therapist
              isset($data['accepts_insurance']) ? 1 : 0, $therapistId]) >= 0;
     }
 
+    public function getPublicReviews(int $therapistId): array
+    {
+        return $this->db->fetchAll(
+            "SELECT f.*, u.first_name, u.last_name, a.scheduled_at
+             FROM feedback f
+             LEFT JOIN patients p ON p.id = f.patient_id
+             LEFT JOIN users u ON u.id = p.user_id
+             LEFT JOIN appointments a ON a.id = f.appointment_id
+             WHERE f.therapist_id = ? AND f.is_public = 1
+             ORDER BY f.created_at DESC",
+            [$therapistId]);
+    }
+
     public function getAvailability(int $therapistId): array
     {
         return $this->db->fetchAll(

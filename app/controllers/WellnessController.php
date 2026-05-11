@@ -7,6 +7,10 @@ class WellnessController extends Controller
         parent::__construct();
         Middleware::requireAuth();
         require_once BASE_PATH . '/app/models/Wellness.php';
+        // Observer Pattern classes
+        require_once BASE_PATH . '/core/MoodObserverInterface.php';
+        require_once BASE_PATH . '/core/MoodSubject.php';
+        require_once BASE_PATH . '/core/MoodObservers.php';
     }
 
     private function getPatient(): array
@@ -43,22 +47,34 @@ class WellnessController extends Controller
         $triggers  = $this->post('triggers', '');
         $activities= $this->post('activities', '');
 
-        // Crisis check
-        $crisisWords = CRISIS_KEYWORDS;
-        $text = strtolower($notes . ' ' . $triggers);
-        $isCrisis = false;
-        foreach ($crisisWords as $kw) {
-            if (str_contains($text, $kw)) { $isCrisis = true; break; }
-        }
-        if ($isCrisis) {
-            $this->db->insert(
-                "INSERT INTO crisis_alerts (patient_id, trigger_text, source, severity, status, created_at)
-                 VALUES (?, 'mood entry', 'mood', ?, 'new', NOW())",
-                [$patient['id'], $level <= 3 ? 'high' : 'medium']
-            );
-        }
-
+        // Save the mood entry first
         $result = $moodModel->save($patient['id'], $level, $notes, $triggers, $activities);
+
+        // Prepare mood data for observers
+        $moodData = [
+            'patient_id' => $patient['id'],
+            'mood_level' => $level,
+            'notes'      => $notes,
+            'triggers'   => $triggers,
+            'activities' => $activities,
+            'entry_date' => date('Y-m-d')
+        ];
+
+        // Initialize Observer Pattern
+        $moodSubject = new MoodSubject();
+
+        // Attach observers
+        $moodSubject->attach(new TherapistAlertObserver());
+        $moodSubject->attach(new CrisisAlertObserver());
+        $moodSubject->attach(new RecommendationObserver());
+
+        // Process mood and notify observers
+        try {
+            $moodSubject->processMood($moodData);
+        } catch (Exception $e) {
+            // Log error but don't break the mood submission
+            error_log("Mood observer processing error: " . $e->getMessage());
+        }
 
         if ($this->isAjax()) {
             $this->json(['success' => true, 'mood' => $level, 'message' => 'Mood logged!']);
